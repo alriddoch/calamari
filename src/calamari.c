@@ -69,7 +69,11 @@ bool init_graphics()
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
 
+    // Enable vertex arrays
     glEnableClientState(GL_VERTEX_ARRAY);
+    // Texture coordinate arrays well need to be enabled _ONLY_ when using
+    // texture coordinates from an array, and disabled afterwards.
+    // glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
     // Set the colour the screen will be when cleared - black
     glClearColor(0.0, 0.0, 0.0, 0.0);
