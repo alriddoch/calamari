@@ -395,7 +395,7 @@ void mouse_click(unsigned int x, unsigned int y)
     GLuint * namePtr = 0;
     for (int i = 0; i < hits; i++) {
         int names = *(ptr++);
-        std::cout << "{" << *ptr << "}";
+        // std::cout << "{" << *ptr << "}";
         // Check if this hit is closer to the viewer than the last one we
         // processed. If this test passes, then this is the closest hit
         // so far, so we record the necessary details.
