@@ -247,28 +247,33 @@ void draw_grid()
 
 float camera_rotation = 0.0f;
 
-void render_scene()
+void camera_pos()
 {
-    // Clear the screen
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    // Set the projection transform
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(45, (float)screen_width/screen_height, 1.f, 100.f);
-
     // Set up the modelview
     glMatrixMode(GL_MODELVIEW);
     // Reset the camera
     glLoadIdentity();
     // Move the camera 20 units from the objects
     glTranslatef(0.0f, 0.0f, -20.0f);
+    // Add a little camera movement
+    glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+}
+
+void render_scene()
+{
+    // Clear the screen
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Enable the depth test
     glEnable(GL_DEPTH_TEST);
 
-    // Add a little camera movement
-    glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+    // Set the projection transform
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(45, (float)screen_width/screen_height, 1.f, 100.f);
+
+    // Set the camera position
+    camera_pos();
 
     // Draw the scene
     draw_grid();
@@ -320,20 +325,8 @@ void mouse_click(unsigned int x, unsigned int y)
         gluPickMatrix(x, y, 1, 1, viewport);
         gluPerspective(45, (float)screen_width/screen_height, 1.f, 100.f);
 
-        // Set up the modelview
-        glMatrixMode(GL_MODELVIEW);
-        // Reset the camera
-        glLoadIdentity();
-        // Move the camera 20 units from the objects
-        glTranslatef(0.0f, 0.0f, -20.0f);
-
-        // Enable the depth test
-        glEnable(GL_DEPTH_TEST);
-
-        glColor3f(0.3, 0.3, 0.3);
-
-        // Add a little camera movement
-        glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+        // Set the camera position
+        camera_pos();
     }
 
     glInitNames();
