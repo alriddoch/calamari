@@ -4,7 +4,7 @@ AC_INIT(src/bonkers.cpp)
 
 dnl Initialise automake
 
-AM_INIT_AUTOMAKE(bonkers, 0.0.0)
+AM_INIT_AUTOMAKE(bonkers, 1.0.0)
 
 AM_MAINTAINER_MODE
 
