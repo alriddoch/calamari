@@ -1,0 +1,36 @@
+dnl Initialise autoconf
+
+AC_INIT(src/bonkers.cpp)
+
+dnl Initialise automake
+
+AM_INIT_AUTOMAKE(bonkers, 0.0.0)
+
+AM_MAINTAINER_MODE
+
+dnl Test for C++ compiler
+
+AC_PROG_CXX
+
+CFLAGS="$CFLAGS -Wall"
+CXXFLAGS="$CXXFLAGS -Wall"
+
+AC_LANG_CPLUSPLUS
+AC_REQUIRE_CPP
+
+dnl Test for libraries
+
+SDL_VERSION=1.2.0
+AM_PATH_SDL($SDL_VERSION)
+CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
+LIBS="$LIBS $SDL_LIBS"
+
+AC_CHECK_LIB(SDL_image,IMG_Load)
+AC_CHECK_LIB(GL,glViewport)
+AC_CHECK_LIB(GLU,gluPerspective)
+
+dnl Generate files
+AC_OUTPUT([
+	Makefile
+	src/Makefile
+])
