@@ -2,8 +2,6 @@
 // the GNU General Public License (See COPYING for details).
 // Copyright (C) 2000,2001 Alistair Riddoch
 
-#include <iostream>
-
 #include <SDL.h>
 #include <GL/gl.h>
 
@@ -11,6 +9,11 @@
 
 static const int blocks_wide = 8;
 static const int blocks_high = 12;
+
+static int block_i = 4;
+static int block_j = 11;
+
+static const int step_time = 1000;
 
 static bool slots[blocks_wide][blocks_high];
 
@@ -26,7 +29,7 @@ SDL_Surface * screen;
 bool initScreen()
 {
     if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
-        std::cerr << "Failed to initialise video" << std::endl << std::flush;
+        // std::cerr << "Failed to initialise video" << std::endl << std::flush;
         return false;
     }
 
@@ -37,7 +40,7 @@ bool initScreen()
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
     if ((screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL)) == NULL) {
-        std::cerr << "Failed to set video mode" << std::endl << std::flush;
+        // std::cerr << "Failed to set video mode" << std::endl << std::flush;
         SDL_Quit();
         return false;
     }
@@ -52,7 +55,6 @@ bool initScreen()
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glFrustum(-0.5f, 0.5f, -0.5f, 0.5f, 0.65f, 20.0f);
-    /// glPerspective(45.0f, (float)width/height, 0.1f, 20.0f);
 
     glMatrixMode(GL_MODELVIEW);
 
@@ -63,7 +65,7 @@ void clear()
 {
     for(int i = 0; i < blocks_wide; ++i) {
         for(int j = 0; j < blocks_high; ++j) {
-            slots[i][j] = ((i == j));
+            slots[i][j] = false;
         }
     }
 }
@@ -108,7 +110,7 @@ void draw_blocks()
     glTranslatef(-(float)blocks_wide/2.0f, -(float)blocks_high/2.0f, 0.0f);
     for(int i = 0; i < blocks_wide; ++i) {
         for(int j = 0; j < blocks_high; ++j) {
-            if (slots[i][j]) {
+            if ((slots[i][j]) || ((i == block_i) && (j == block_j))) {
                 glCallList(block_list);
             }
             glTranslatef(0.0f, 1.0f, 0.0f);
@@ -136,10 +138,43 @@ void render()
     SDL_GL_SwapBuffers();
 }
 
+void checkrows()
+{
+    for(int j = 0; j < blocks_high; ++j) {
+        bool solid = true;
+        for(int i = 0; i < blocks_wide; ++i) {
+            solid &= slots[i][j];
+        }
+        if (solid) {
+            for(int k = 0; k < blocks_wide; ++k) {
+                for(int l = j + 1; l < blocks_high; ++l) {
+                    slots[k][l - 1] = slots[k][l];
+                }
+                slots[k][blocks_high - 1] = false;
+            }
+            --j;
+        }
+    }
+}
+
+void step()
+{
+    if ((block_j == 0) || (slots[block_i][block_j - 1])) {
+        // Grounded at block_j
+        slots[block_i][block_j] = true;
+        block_i = 3; block_j = 12;
+    } else {
+        --block_j;
+    }
+    checkrows();
+}
+
 void loop()
 {
     SDL_Event event;
     int elapsed_time = SDL_GetTicks();
+    int last_step = elapsed_time;
+    int fps = 0;
 
     while (!done) {
         while (SDL_PollEvent(&event)) {
@@ -152,15 +187,24 @@ void loop()
                         done = true;
                     }
                     if ( event.key.keysym.sym == SDLK_UP ) {
-                        // drop
+                        // rot not valid for single blocks
                     }
                     if ( event.key.keysym.sym == SDLK_DOWN ) {
-                        // rot
+                        // drop
+                        int j;
+                        for(j = block_j; j > 0; --j) {
+                            if (slots[block_i][j-1]) {
+                                break;
+                            }
+                        }
+                        block_j = j;
                     }
                     if ( event.key.keysym.sym == SDLK_LEFT ) {
+                        --block_i;
                         // left
                     }
                     if ( event.key.keysym.sym == SDLK_RIGHT ) {
+                        ++block_i;
                         // right
                     }
                     break;
@@ -169,6 +213,12 @@ void loop()
             }
         }
         int ticks = SDL_GetTicks();
+        ++fps;
+        if ((ticks - last_step) > step_time) {
+            last_step = ticks;
+            fps = 0;
+            step();
+        }
         float delta = (ticks - elapsed_time) / 1000.0f;
         elapsed_time = ticks;
         rot += delta;

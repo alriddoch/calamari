@@ -1,4 +1,4 @@
-bin_PROGRAMS = Bonkers
+bin_PROGRAMS = bonkers
 
-Bonkers_SOURCES = \
+bonkers_SOURCES = \
                  bonkers.cpp
