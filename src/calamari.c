@@ -1,38 +1,41 @@
 // This file may be redistributed and modified only under the terms of
 // the GNU General Public License (See COPYING for details).
-// Copyright (C) 2000,2001 Alistair Riddoch
+// Copyright (C) 2000,2004 Alistair Riddoch
 
 #ifdef WIN32
 #include <Windows.h>
 #define M_PI 3.14159265f
 #endif
 
-#include <SDL.h>
+#include <SDL/SDL.h>
+
 #include <GL/gl.h>
+#include <GL/glu.h>
 
 #include <cmath>
+
+// Constants
 
 static const int blocks_wide = 8;
 static const int blocks_high = 12;
 
+static const int step_time = 1000;
+
+// Variables that store the game state
+
 static int block_i = 4;
 static int block_j = 11;
 
-static const int step_time = 1000;
-
 static bool slots[blocks_wide][blocks_high + 1];
-
-static const int width = 400;
-static const int height = 400;
 
 static bool done = false;
 
-unsigned long block_list;
-
-SDL_Surface * screen;
-
 bool initScreen()
 {
+    const int width = 400;
+    const int height = 400;
+
+    // Initialise SDL
     if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
         // std::cerr << "Failed to initialise video" << std::endl << std::flush;
         return false;
@@ -44,24 +47,31 @@ bool initScreen()
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
+    SDL_Surface * screen;
+
+    // Create the window
     if ((screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL)) == NULL) {
         // std::cerr << "Failed to set video mode" << std::endl << std::flush;
         SDL_Quit();
         return false;
     }
 
+    // Setup the viewport transform
     glViewport(0,0,width,height);
-    glDepthFunc(GL_LESS);
+
+    // Enable the depth test
     glEnable(GL_DEPTH_TEST);
 
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glClearDepth(1.0);
+    glEnableClientState(GL_VERTEX_ARRAY);
 
+    // Set the colour the screen will be when cleared - black
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glColor3f(0.3, 0.3, 0.3);
+
+    // Set the projection transform
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glFrustum(-0.5f, 0.5f, -0.5f, 0.5f, 0.65f, 20.0f);
-
-    glMatrixMode(GL_MODELVIEW);
+    gluPerspective(45, width/height, 1.f, 100.f);
 
     return true;
 }
@@ -77,37 +87,57 @@ void clear()
 
 void setup()
 {
+    // Clear the block store
     clear();
 
-    block_list = glGenLists(1);
-    glNewList(block_list, GL_COMPILE);
-    glBegin(GL_QUAD_STRIP);
-    glColor3f(0.3, 0.3, 0.3);
-    glVertex3f(-0.5f, -0.5f, -0.5f);
-    glVertex3f(-0.5f, 0.5f, -0.5f);
-    glVertex3f(0.5f, -0.5f, -0.5f);
-    glVertex3f(0.5f, 0.5f, -0.5f);
-    glVertex3f(0.5f, -0.5f, 0.5f);
-    glVertex3f(0.5f, 0.5f, 0.5f);
-    glVertex3f(-0.5f, -0.5f, 0.5f);
-    glVertex3f(-0.5f, 0.5f, 0.5f);
-    glVertex3f(-0.5f, -0.5f, -0.5f);
-    glVertex3f(-0.5f, 0.5f, -0.5f);
-    glEnd();
+}
 
-    glBegin(GL_QUADS);
-    glVertex3f(-0.5f, -0.5f, -0.5f);
-    glVertex3f(0.5f, -0.5f, -0.5f);
-    glVertex3f(-0.5f, -0.5f, 0.5f);
-    glVertex3f(0.5f, -0.5f, 0.5f);
+void draw_one_block()
+{
+    static const float front_vertices[] = {
+        0.f, 0.f, 1.f,
+        1.f, 0.f, 1.f,
+        1.f, 1.f, 1.f,
+        0.f, 1.f, 1.f,
+    };
+    glVertexPointer(3, GL_FLOAT, 0, front_vertices);
+    glDrawArrays(GL_QUADS, 0, 4);
 
-    glVertex3f(-0.5f, 0.5f, -0.5f);
-    glVertex3f(0.5f, 0.5f, -0.5f);
-    glVertex3f(-0.5f, 0.5f, 0.5f);
-    glVertex3f(0.5f, 0.5f, 0.5f);
-    glEnd();
+    static const float left_vertices[] = {
+        0.f, 0.f, 0.f,
+        0.f, 0.f, 1.f,
+        0.f, 1.f, 1.f,
+        0.f, 1.f, 0.f,
+    };
+    glVertexPointer(3, GL_FLOAT, 0, left_vertices);
+    glDrawArrays(GL_QUADS, 0, 4);
 
-    glEndList();
+    static const float right_vertices[] = {
+        1.f, 0.f, 1.f,
+        1.f, 0.f, 0.f,
+        1.f, 1.f, 0.f,
+        1.f, 1.f, 1.f,
+    };
+    glVertexPointer(3, GL_FLOAT, 0, right_vertices);
+    glDrawArrays(GL_QUADS, 0, 4);
+
+    static const float top_vertices[] = {
+        0.f, 1.f, 1.f,
+        1.f, 1.f, 1.f,
+        1.f, 1.f, 0.f,
+        0.f, 1.f, 0.f,
+    };
+    glVertexPointer(3, GL_FLOAT, 0, top_vertices);
+    glDrawArrays(GL_QUADS, 0, 4);
+
+    static const float bottom_vertices[] = {
+        0.f, 0.f, 0.f,
+        1.f, 0.f, 0.f,
+        1.f, 0.f, 1.f,
+        0.f, 0.f, 1.f,
+    };
+    glVertexPointer(3, GL_FLOAT, 0, bottom_vertices);
+    glDrawArrays(GL_QUADS, 0, 4);
 }
 
 void draw_blocks()
@@ -116,7 +146,7 @@ void draw_blocks()
     for(int i = 0; i < blocks_wide; ++i) {
         for(int j = 0; j < blocks_high; ++j) {
             if ((slots[i][j]) || ((i == block_i) && (j == block_j))) {
-                glCallList(block_list);
+                draw_one_block();
             }
             glTranslatef(0.0f, 1.0f, 0.0f);
         }
@@ -131,25 +161,32 @@ void render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    // Set up the modelview - camera 20 units from the objects
+    glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(0.0f, 0.0f, -10.0f);
+    glTranslatef(0.0f, 0.0f, -20.0f);
 
+    // Add a little camera movement
     glRotatef(10, sin(rot), cos(rot), 0.0f);
 
-    glPushMatrix();
+    // Draw the scene
     draw_blocks();
-    glPopMatrix();
 
     SDL_GL_SwapBuffers();
 }
 
 void checkrows()
 {
+    // Go through all the stationary blocks to check if there
+    // is a complete solid row
     for(int j = 0; j < blocks_high; ++j) {
+        // This flag will become false if this row has a gap
         bool solid = true;
         for(int i = 0; i < blocks_wide; ++i) {
             solid &= slots[i][j];
         }
+        // If solid is still true, there were no gaps, so we shift all
+        // the rows above down.
         if (solid) {
             for(int k = 0; k < blocks_wide; ++k) {
                 for(int l = j + 1; l < blocks_high; ++l) {
@@ -164,13 +201,20 @@ void checkrows()
 
 void step()
 {
+    // Update the current falling block
+
+    // If its at the bottom, or there is a block below it, then it
+    // is grounded and stops
     if ((block_j == 0) || (slots[block_i][block_j - 1])) {
-        // Grounded at block_j
+        // Store this blick in the array of fixed blocks
         slots[block_i][block_j] = true;
+        // Set the moving block back at the top
         block_i = 3; block_j = 12;
     } else {
+        // Step the moving block down the screen
         --block_j;
     }
+
     checkrows();
 }
 
@@ -181,22 +225,28 @@ void loop()
     int last_step = elapsed_time;
     int fps = 0;
 
+    // This is the main program loop. It will run until something sets
+    // the flag to indicate we are done.
     while (!done) {
+        // Check for events
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_QUIT:
+                    // The user closed the window
                     done = true;
                     break;
                 case SDL_KEYDOWN:
+                    // We have a keypress
                     if ( event.key.keysym.sym == SDLK_ESCAPE ) {
                         // quit
                         done = true;
                     }
                     if ( event.key.keysym.sym == SDLK_UP ) {
-                        // rot not valid for single blocks
+                        // In tetris up is often used to rotate
+                        // the object. This is not valid for single blocks
                     }
                     if ( event.key.keysym.sym == SDLK_DOWN ) {
-                        // drop
+                        // Drop the block
                         int j;
                         for(j = block_j; j > 0; --j) {
                             if (slots[block_i][j-1]) {
@@ -206,13 +256,13 @@ void loop()
                         block_j = j;
                     }
                     if ( event.key.keysym.sym == SDLK_LEFT ) {
-                        // left
+                        // Move block left
                         if ((block_i > 0) && !slots[block_i - 1][block_j]) {
                             --block_i;
                         }
                     }
                     if ( event.key.keysym.sym == SDLK_RIGHT ) {
-                        // right
+                        // Move block right
                         if ((block_i < (blocks_wide-1)) && !slots[block_i + 1][block_j]) {
                             ++block_i;
                         }
@@ -222,6 +272,8 @@ void loop()
                     break;
             }
         }
+        // Get the time and check if enough time has elapsed for
+        // the moving block to move
         int ticks = SDL_GetTicks();
         ++fps;
         if ((ticks - last_step) > step_time) {
@@ -231,10 +283,14 @@ void loop()
         }
         float delta = (ticks - elapsed_time) / 1000.0f;
         elapsed_time = ticks;
+
+        // Update the rotation on the camera
         rot += delta;
         if (rot > (2 * M_PI)) {
             rot -= (2 * M_PI);
         }
+
+        // Render the screen
         render();
     }
 }
@@ -244,7 +300,9 @@ int main()
     if (!initScreen()) {
         return 1;
     }
+
     setup();
+
     loop();
     return 0;
 }
