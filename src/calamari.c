@@ -2,6 +2,11 @@
 // the GNU General Public License (See COPYING for details).
 // Copyright (C) 2000,2001 Alistair Riddoch
 
+#ifdef WIN32
+#include <Windows.h>
+#define M_PI 3.14159265f
+#endif
+
 #include <SDL.h>
 #include <GL/gl.h>
 
@@ -243,3 +248,17 @@ int main()
     loop();
     return 0;
 }
+
+#ifdef WIN32
+
+int WinMain(
+    HINSTANCE hInstance,
+    HINSTANCE hPrevInstance,
+    LPSTR lpCmdLine,
+    int nCmdShow
+)
+{
+    main();
+}
+
+#endif
