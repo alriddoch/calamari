@@ -19,6 +19,8 @@ static const int height = 400;
 
 static bool done = false;
 
+unsigned long block_list;
+
 SDL_Surface * screen;
 
 bool initScreen()
@@ -57,8 +59,63 @@ bool initScreen()
     return true;
 }
 
+void clear()
+{
+    for(int i = 0; i < blocks_wide; ++i) {
+        for(int j = 0; j < blocks_high; ++j) {
+            slots[i][j] = ((i == j));
+        }
+    }
+}
+
 void setup()
 {
+    clear();
+
+    block_list = glGenLists(1);
+    glNewList(block_list, GL_COMPILE);
+    glBegin(GL_QUAD_STRIP);
+    glColor3f(0.3, 0.3, 0.3);
+    glVertex3f(-0.5f, -0.5f, -0.5f);
+    glVertex3f(-0.5f, 0.5f, -0.5f);
+    glVertex3f(0.5f, -0.5f, -0.5f);
+    glVertex3f(0.5f, 0.5f, -0.5f);
+    glVertex3f(0.5f, -0.5f, 0.5f);
+    glVertex3f(0.5f, 0.5f, 0.5f);
+    glVertex3f(-0.5f, -0.5f, 0.5f);
+    glVertex3f(-0.5f, 0.5f, 0.5f);
+    glVertex3f(-0.5f, -0.5f, -0.5f);
+    glVertex3f(-0.5f, 0.5f, -0.5f);
+    glEnd();
+
+    glBegin(GL_QUADS);
+    glVertex3f(-0.5f, -0.5f, -0.5f);
+    glVertex3f(0.5f, -0.5f, -0.5f);
+    glVertex3f(-0.5f, -0.5f, 0.5f);
+    glVertex3f(0.5f, -0.5f, 0.5f);
+
+    glVertex3f(-0.5f, 0.5f, -0.5f);
+    glVertex3f(0.5f, 0.5f, -0.5f);
+    glVertex3f(-0.5f, 0.5f, 0.5f);
+    glVertex3f(0.5f, 0.5f, 0.5f);
+    glEnd();
+
+    glEndList();
+}
+
+void draw_blocks()
+{
+    glTranslatef(-(float)blocks_wide/2.0f, -(float)blocks_high/2.0f, 0.0f);
+    for(int i = 0; i < blocks_wide; ++i) {
+        for(int j = 0; j < blocks_high; ++j) {
+            if (slots[i][j]) {
+                glCallList(block_list);
+            }
+            glTranslatef(0.0f, 1.0f, 0.0f);
+        }
+        glTranslatef(1.0f, -blocks_high, 0.0f);
+    }
+
 }
 
 float rot = 0.0f;
@@ -72,13 +129,9 @@ void render()
 
     glRotatef(20, sin(rot), cos(rot), 0.0f);
 
-    glBegin(GL_QUADS);
-    glColor3f(0.3, 0.3, 0.3);
-    glVertex3f(-1, -1, 0);
-    glVertex3f(-1, 1, 0);
-    glVertex3f(1, 1, 0);
-    glVertex3f(1, -1, 0);
-    glEnd();
+    glPushMatrix();
+    draw_blocks();
+    glPopMatrix();
 
     SDL_GL_SwapBuffers();
 }
