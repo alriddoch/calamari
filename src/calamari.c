@@ -7,6 +7,13 @@
 #include <SDL.h>
 #include <GL/gl.h>
 
+#include <cmath>
+
+static const int blocks_wide = 8;
+static const int blocks_high = 12;
+
+static bool slots[blocks_wide][blocks_high];
+
 static const int width = 400;
 static const int height = 400;
 
