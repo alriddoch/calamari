@@ -15,7 +15,7 @@ static int block_j = 11;
 
 static const int step_time = 1000;
 
-static bool slots[blocks_wide][blocks_high];
+static bool slots[blocks_wide][blocks_high + 1];
 
 static const int width = 400;
 static const int height = 400;
@@ -64,7 +64,7 @@ bool initScreen()
 void clear()
 {
     for(int i = 0; i < blocks_wide; ++i) {
-        for(int j = 0; j < blocks_high; ++j) {
+        for(int j = 0; j <= blocks_high; ++j) {
             slots[i][j] = false;
         }
     }
@@ -129,7 +129,7 @@ void render()
     glLoadIdentity();
     glTranslatef(0.0f, 0.0f, -10.0f);
 
-    glRotatef(20, sin(rot), cos(rot), 0.0f);
+    glRotatef(10, sin(rot), cos(rot), 0.0f);
 
     glPushMatrix();
     draw_blocks();
@@ -184,6 +184,7 @@ void loop()
                     break;
                 case SDL_KEYDOWN:
                     if ( event.key.keysym.sym == SDLK_ESCAPE ) {
+                        // quit
                         done = true;
                     }
                     if ( event.key.keysym.sym == SDLK_UP ) {
@@ -200,12 +201,16 @@ void loop()
                         block_j = j;
                     }
                     if ( event.key.keysym.sym == SDLK_LEFT ) {
-                        --block_i;
                         // left
+                        if ((block_i > 0) && !slots[block_i - 1][block_j]) {
+                            --block_i;
+                        }
                     }
                     if ( event.key.keysym.sym == SDLK_RIGHT ) {
-                        ++block_i;
                         // right
+                        if ((block_i < (blocks_wide-1)) && !slots[block_i + 1][block_j]) {
+                            ++block_i;
+                        }
                     }
                     break;
                 default:
