@@ -36,6 +36,7 @@ static bool slots[grid_width][grid_height + 1];
 
 static bool program_finished = false;
 
+int average_frames_per_second;
 GLuint textTexture;
 GLuint textBase;
 
@@ -74,6 +75,7 @@ bool init_graphics()
     // Initialise the texture used for rendering text
     glGenTextures(1, &textTexture);
     glBindTexture(GL_TEXTURE_2D, textTexture);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glTexImage2D(GL_TEXTURE_2D, 0, texture_font_internalFormat,
                  texture_font_width, texture_font_height, 0,
                  texture_font_format, GL_UNSIGNED_BYTE, texture_font_pixels);
@@ -83,24 +85,26 @@ bool init_graphics()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     textBase = glGenLists(256);
+    float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
+    glVertexPointer(2, GL_FLOAT, 0, vertices);
     for(int loop=0; loop<256; loop++) {
         float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
         float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
 
+        float texcoords[] = { cx, 1-cy-0.0625f,
+                              cx+0.0625f, 1-cy-0.0625f,
+                              cx+0.0625f, 1-cy,
+                              cx, 1-cy };
+
         glNewList(textBase+loop,GL_COMPILE);   // Start Building A List
-        glBegin(GL_QUADS);                     // Use A Quad For Each Character
-        glTexCoord2f(cx,1-cy-0.0625f);         // Texture Coord (Bottom Left)
-        glVertex2i(0,0);                       // Vertex Coord (Bottom Left)
-        glTexCoord2f(cx+0.0625f,1-cy-0.0625f); // Texture Coord (Bottom Right)
-        glVertex2i(16,0);                      // Vertex Coord (Bottom Right)
-        glTexCoord2f(cx+0.0625f,1-cy);         // Texture Coord (Top Right)
-        glVertex2i(16,16);                     // Vertex Coord (Top Right)
-        glTexCoord2f(cx,1-cy);                 // Texture Coord (Top Left)
-        glVertex2i(0,16);                      // Vertex Coord (Top Left)
-        glEnd();                               // Done Building Our Quad (Character)
+
+        glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
+        glDrawArrays(GL_QUADS, 0, 4);
+
         glTranslated(10,0,0);                  // Move To The Right Of The Character
         glEndList();                           // Done Building The Display List
     }                                        
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
     return true;
 }
@@ -264,9 +268,13 @@ void render_scene()
     draw_grid();
 }
 
+// Draw any text output and other screen oriented user interface
 void render_ui()
 {
-    // Set the projection transform
+    char buf[256];
+
+    // Set the projection to a transform that allows us to use pixel
+    // coordinates.
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     glOrtho(0, screen_width, 0, screen_height, -800.0f, 800.0f);
@@ -276,11 +284,20 @@ void render_ui()
     // Reset the camera
     glLoadIdentity();
 
+    // Disable the depth test, as its not useful when rendering text
     glDisable(GL_DEPTH_TEST);
 
+    // 
     glTranslatef(5.f, 5.f, 0);
     glColor3f(1.f, 1.f, 1.f);
-    gl_print("Test word");
+    sprintf(buf, "FPS: %d", average_frames_per_second);
+    gl_print(buf);
+}
+
+// Handle a mouse click. Coordinates are given in OpenGL style coordinates
+// with the origin in the bottom left.
+void mouse_click(unsigned int x, unsigned int y)
+{
 }
 
 void check_rows()
@@ -331,7 +348,7 @@ void loop()
     SDL_Event event;
     int elapsed_time = SDL_GetTicks();
     int last_step = elapsed_time;
-    int frames_per_second = 0;
+    int frame_count = 0;
 
     // This is the main program loop. It will run until something sets
     // the flag to indicate we are done.
@@ -376,6 +393,12 @@ void loop()
                         }
                     }
                     break;
+                case SDL_MOUSEBUTTONDOWN:
+                    if (event.button.button == SDL_BUTTON_LEFT) {
+                        mouse_click(event.button.x,
+                                    screen_height - event.button.y);
+                    }
+                    break;
                 default:
                     break;
             }
@@ -383,10 +406,11 @@ void loop()
         // Get the time and check if enough time has elapsed for
         // the moving block to move
         int ticks = SDL_GetTicks();
-        ++frames_per_second;
+        ++frame_count;
         if ((ticks - last_step) > step_time) {
             last_step = ticks;
-            frames_per_second = 0;
+            average_frames_per_second = frame_count;
+            frame_count = 0;
             step();
         }
         float delta = (ticks - elapsed_time) / 1000.0f;
