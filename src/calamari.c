@@ -14,6 +14,8 @@
 
 #include "font.h"
 
+#include <iostream>
+
 #include <cmath>
 #include <cstring>
 
@@ -29,8 +31,8 @@ static const int step_time = 1000;
 
 // Variables that store the game state
 
-static int block_i = 4;
-static int block_j = 11;
+static int block_x = 4;
+static int block_y = 11;
 
 static bool slots[grid_width][grid_height + 1];
 
@@ -103,7 +105,7 @@ bool init_graphics()
 
         glTranslated(10,0,0);                  // Move To The Right Of The Character
         glEndList();                           // Done Building The Display List
-    }                                        
+    }
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
     return true;
@@ -199,6 +201,8 @@ void draw_grid()
         0.f, grid_height, 0.f,
     };
 
+    glColor3f(0.3, 0.3, 0.3);
+
     // Move to the origin of the grid
     glTranslatef(-(float)grid_width/2.0f, -(float)grid_height/2.0f, 0.0f);
     // Store this position
@@ -226,7 +230,7 @@ void draw_grid()
 
     for(int i = 0; i < grid_width; ++i) {
         for(int j = 0; j < grid_height; ++j) {
-            if ((slots[i][j]) || ((i == block_i) && (j == block_j))) {
+            if ((slots[i][j])) {
                 draw_unit_cube();
             }
             glTranslatef(0.0f, 1.0f, 0.0f);
@@ -234,7 +238,11 @@ void draw_grid()
         glTranslatef(1.0f, -grid_height, 0.0f);
     }
 
+    glColor3f(1.0, 1.0, 1.0);
+
     glPopMatrix();
+    glTranslatef(block_x, block_y, 0.f);
+    draw_unit_cube();
 }
 
 float camera_rotation = 0.0f;
@@ -259,8 +267,6 @@ void render_scene()
     // Enable the depth test
     glEnable(GL_DEPTH_TEST);
 
-    glColor3f(0.3, 0.3, 0.3);
-
     // Add a little camera movement
     glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
 
@@ -269,7 +275,7 @@ void render_scene()
 }
 
 // Draw any text output and other screen oriented user interface
-void render_ui()
+void render_interface()
 {
     char buf[256];
 
@@ -287,7 +293,7 @@ void render_ui()
     // Disable the depth test, as its not useful when rendering text
     glDisable(GL_DEPTH_TEST);
 
-    // 
+    //
     glTranslatef(5.f, 5.f, 0);
     glColor3f(1.f, 1.f, 1.f);
     sprintf(buf, "FPS: %d", average_frames_per_second);
@@ -298,49 +304,92 @@ void render_ui()
 // with the origin in the bottom left.
 void mouse_click(unsigned int x, unsigned int y)
 {
-}
+    GLuint selectBuf[512];
+    GLfloat square_vertices[] = { 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
+                                  1.f, 1.f, 0.f, 0.f, 1.f, 0.f };
 
-void check_rows()
-{
-    // Go through all the stationary blocks to check if there
-    // is a complete solid row
-    for(int j = 0; j < grid_height; ++j) {
-        // This flag will become false if this row has a gap
-        bool solid = true;
-        for(int i = 0; i < grid_width; ++i) {
-            solid &= slots[i][j];
+    glSelectBuffer(512,selectBuf);
+    glRenderMode(GL_SELECT);
+
+    {
+        // Set the projection transform
+        glMatrixMode(GL_PROJECTION);
+        glLoadIdentity();
+        GLint viewport[4];
+        glGetIntegerv(GL_VIEWPORT,viewport);
+        gluPickMatrix(x, y, 1, 1, viewport);
+        gluPerspective(45, (float)screen_width/screen_height, 1.f, 100.f);
+
+        // Set up the modelview
+        glMatrixMode(GL_MODELVIEW);
+        // Reset the camera
+        glLoadIdentity();
+        // Move the camera 20 units from the objects
+        glTranslatef(0.0f, 0.0f, -20.0f);
+
+        // Enable the depth test
+        glEnable(GL_DEPTH_TEST);
+
+        glColor3f(0.3, 0.3, 0.3);
+
+        // Add a little camera movement
+        glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+    }
+
+    glInitNames();
+    glTranslatef(-(float)grid_width/2.0f, -(float)grid_height/2.0f, 0.0f);
+
+    glVertexPointer(3, GL_FLOAT, 0, square_vertices);
+    glPushName(0);
+
+    for(int i = 0; i < grid_width; ++i) {
+        for(int j = 0; j < grid_height; ++j) {
+            glLoadName(i + j * grid_width);
+            glDrawArrays(GL_QUADS, 0, 4);
+            glTranslatef(0.0f, 1.0f, 0.0f);
         }
-        // If solid is still true, there were no gaps, so we shift all
-        // the rows above down.
-        if (solid) {
-            for(int k = 0; k < grid_width; ++k) {
-                for(int l = j + 1; l < grid_height; ++l) {
-                    slots[k][l - 1] = slots[k][l];
-                }
-                slots[k][grid_height - 1] = false;
-            }
-            --j;
+        glTranslatef(1.0f, -grid_height, 0.0f);
+    }
+
+    glPopName();
+
+    int hits = glRenderMode(GL_RENDER);
+
+    std::cout << "Got " << hits << " hits" << std::endl << std::flush;
+
+    if (hits == 0) {
+        return;
+    }
+
+    GLuint * ptr = &selectBuf[0];
+    GLuint minDepth = UINT_MAX, noNames = 0;
+    GLuint * namePtr = 0;
+    for (int i = 0; i < hits; i++) {
+        int names = *(ptr++);
+        std::cout << "{" << *ptr << "}";
+        if (*ptr < minDepth) {
+            noNames = names;
+            minDepth = *ptr;
+            namePtr = ptr + 2;
         }
+        ptr += (names + 2);
+    }
+    GLuint * nameItr = namePtr;
+    int closest = -1;
+    std::cout << "The closest hit has " << noNames << " names: " << std::endl << std::flush;
+
+    GLuint hitName = *namePtr;
+    int hit_x = hitName % grid_width;
+    int hit_y = hitName / grid_width;
+
+    std::cout << "We hit grid square " << hit_x << ", " << hit_y << std::endl << std::flush;
+    if (hit_x < grid_width && hit_y < grid_height) {
+        slots[hit_x][hit_y] = !slots[hit_x][hit_y];
     }
 }
 
 void step()
 {
-    // Update the current falling block
-
-    // If its at the bottom, or there is a block below it, then it
-    // is grounded and stops
-    if ((block_j == 0) || (slots[block_i][block_j - 1])) {
-        // Store this blick in the array of fixed blocks
-        slots[block_i][block_j] = true;
-        // Set the moving block back at the top
-        block_i = 4; block_j = 12;
-    } else {
-        // Step the moving block down the screen
-        --block_j;
-    }
-
-    check_rows();
 }
 
 void loop()
@@ -367,29 +416,26 @@ void loop()
                         program_finished = true;
                     }
                     if ( event.key.keysym.sym == SDLK_UP ) {
-                        // In tetris up is often used to rotate
-                        // the object. This is not valid for single blocks
+                        if ((block_y < (grid_height-1)) && !slots[block_x][block_y + 1]) {
+                            ++block_y;
+                        }
                     }
                     if ( event.key.keysym.sym == SDLK_DOWN ) {
-                        // Drop the block
-                        int j;
-                        for(j = block_j; j > 0; --j) {
-                            if (slots[block_i][j-1]) {
-                                break;
-                            }
+                        // Move block down
+                        if ((block_y > 0) && !slots[block_x][block_y - 1]) {
+                            --block_y;
                         }
-                        block_j = j;
                     }
                     if ( event.key.keysym.sym == SDLK_LEFT ) {
                         // Move block left
-                        if ((block_i > 0) && !slots[block_i - 1][block_j]) {
-                            --block_i;
+                        if ((block_x > 0) && !slots[block_x - 1][block_y]) {
+                            --block_x;
                         }
                     }
                     if ( event.key.keysym.sym == SDLK_RIGHT ) {
                         // Move block right
-                        if ((block_i < (grid_width-1)) && !slots[block_i + 1][block_j]) {
-                            ++block_i;
+                        if ((block_x < (grid_width-1)) && !slots[block_x + 1][block_y]) {
+                            ++block_x;
                         }
                     }
                     break;
@@ -403,16 +449,22 @@ void loop()
                     break;
             }
         }
-        // Get the time and check if enough time has elapsed for
-        // the moving block to move
-        int ticks = SDL_GetTicks();
+
         ++frame_count;
+
+        // Get the time and check if a complete time step has passed.
+        // For step based games like Tetris, this is used to update the
+        // the game state
+        const int ticks = SDL_GetTicks();
         if ((ticks - last_step) > step_time) {
             last_step = ticks;
             average_frames_per_second = frame_count;
             frame_count = 0;
             step();
         }
+
+        // Calculate the time in seconds since the last frame
+        // For a real time program this would be used to update the game state
         float delta = (ticks - elapsed_time) / 1000.0f;
         elapsed_time = ticks;
 
@@ -424,7 +476,7 @@ void loop()
 
         // Render the screen
         render_scene();
-        render_ui();
+        render_interface();
 
         SDL_GL_SwapBuffers();
     }
@@ -432,12 +484,15 @@ void loop()
 
 int main()
 {
+    // Initialise the graphics
     if (!init_graphics()) {
         return 1;
     }
 
+    // Intialise the game state
     setup();
 
+    // Run the game
     loop();
     return 0;
 }
