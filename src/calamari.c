@@ -7,16 +7,23 @@
 #define M_PI 3.14159265f
 #endif
 
+#include <SDL/SDL.h>
+
 #include <GL/gl.h>
 #include <GL/glu.h>
-#include <GL/glut.h>
+
+#include "font.h"
 
 #include <cmath>
+#include <cstring>
 
 // Constants
 
-static const int blocks_wide = 8;
-static const int blocks_high = 12;
+static const int screen_width = 600;
+static const int screen_height = 400;
+
+static const int grid_width = 12;
+static const int grid_height = 12;
 
 static const int step_time = 1000;
 
@@ -25,17 +32,101 @@ static const int step_time = 1000;
 static int block_i = 4;
 static int block_j = 11;
 
-static bool slots[blocks_wide][blocks_high + 1];
+static bool slots[grid_width][grid_height + 1];
 
-static bool done = false;
+static bool program_finished = false;
+
+GLuint textTexture;
+GLuint textBase;
+
+bool init_graphics()
+{
+    // Initialise SDL
+    if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
+        // std::cerr << "Failed to initialise video" << std::endl << std::flush;
+        return false;
+    }
+
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+
+    SDL_Surface * screen;
+
+    // Create the window
+    screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL);
+    if (screen == NULL) {
+        // std::cerr << "Failed to set video mode" << std::endl << std::flush;
+        SDL_Quit();
+        return false;
+    }
+
+    // Setup the viewport transform
+    glViewport(0, 0, screen_width, screen_height);
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+
+    // Set the colour the screen will be when cleared - black
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+
+    // Initialise the texture used for rendering text
+    glGenTextures(1, &textTexture);
+    glBindTexture(GL_TEXTURE_2D, textTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, texture_font_internalFormat,
+                 texture_font_width, texture_font_height, 0,
+                 texture_font_format, GL_UNSIGNED_BYTE, texture_font_pixels);
+    if (glGetError() != 0) {
+        return false;
+    }
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    textBase = glGenLists(256);
+    for(int loop=0; loop<256; loop++) {
+        float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
+        float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
+
+        glNewList(textBase+loop,GL_COMPILE);   // Start Building A List
+        glBegin(GL_QUADS);                     // Use A Quad For Each Character
+        glTexCoord2f(cx,1-cy-0.0625f);         // Texture Coord (Bottom Left)
+        glVertex2i(0,0);                       // Vertex Coord (Bottom Left)
+        glTexCoord2f(cx+0.0625f,1-cy-0.0625f); // Texture Coord (Bottom Right)
+        glVertex2i(16,0);                      // Vertex Coord (Bottom Right)
+        glTexCoord2f(cx+0.0625f,1-cy);         // Texture Coord (Top Right)
+        glVertex2i(16,16);                     // Vertex Coord (Top Right)
+        glTexCoord2f(cx,1-cy);                 // Texture Coord (Top Left)
+        glVertex2i(0,16);                      // Vertex Coord (Top Left)
+        glEnd();                               // Done Building Our Quad (Character)
+        glTranslated(10,0,0);                  // Move To The Right Of The Character
+        glEndList();                           // Done Building The Display List
+    }                                        
+
+    return true;
+}
 
 void clear()
 {
-    for(int i = 0; i < blocks_wide; ++i) {
-        for(int j = 0; j <= blocks_high; ++j) {
+    for(int i = 0; i < grid_width; ++i) {
+        for(int j = 0; j <= grid_height; ++j) {
             slots[i][j] = false;
         }
     }
+}
+
+void gl_print(const char * str)
+{
+    glPushMatrix();
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glBindTexture(GL_TEXTURE_2D, textTexture);
+    glEnable(GL_TEXTURE_2D);
+    glEnable(GL_BLEND);
+    glListBase(textBase-32);
+    glCallLists(strlen(str),GL_BYTE,str);
+    glDisable(GL_BLEND);
+    glDisable(GL_TEXTURE_2D);
+    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+    glPopMatrix();
 }
 
 void setup()
@@ -45,7 +136,7 @@ void setup()
 
 }
 
-void draw_one_block()
+void draw_unit_cube()
 {
     static const float front_vertices[] = {
         0.f, 0.f, 1.f,
@@ -93,73 +184,130 @@ void draw_one_block()
     glDrawArrays(GL_QUADS, 0, 4);
 }
 
-void draw_blocks()
+void draw_grid()
 {
-    glTranslatef(-(float)blocks_wide/2.0f, -(float)blocks_high/2.0f, 0.0f);
-    for(int i = 0; i < blocks_wide; ++i) {
-        for(int j = 0; j < blocks_high; ++j) {
+    float horizontal_line_vertices[] = {
+        0.f, 0.f, 0.f,
+        grid_width, 0.f, 0.f,
+    };
+    float vertical_line_vertices[] = {
+        0.f, 0.f, 0.f,
+        0.f, grid_height, 0.f,
+    };
+
+    // Move to the origin of the grid
+    glTranslatef(-(float)grid_width/2.0f, -(float)grid_height/2.0f, 0.0f);
+    // Store this position
+    glPushMatrix();
+
+    glVertexPointer(3, GL_FLOAT, 0, vertical_line_vertices);
+    for (int i = 0; i <= grid_width; ++i) {
+        glDrawArrays(GL_LINES, 0, 2);
+        glTranslatef(1.0f, 0.0f, 0.0f);
+    }
+
+    // Reset to the origin
+    glPopMatrix();
+    glPushMatrix();
+
+    glVertexPointer(3, GL_FLOAT, 0, horizontal_line_vertices);
+    for (int j = 0; j <= grid_height; ++j) {
+        glDrawArrays(GL_LINES, 0, 2);
+        glTranslatef(0.0f, 1.0f, 0.0f);
+    }
+
+    // Reset to the origin
+    glPopMatrix();
+    glPushMatrix();
+
+    for(int i = 0; i < grid_width; ++i) {
+        for(int j = 0; j < grid_height; ++j) {
             if ((slots[i][j]) || ((i == block_i) && (j == block_j))) {
-                draw_one_block();
+                draw_unit_cube();
             }
             glTranslatef(0.0f, 1.0f, 0.0f);
         }
-        glTranslatef(1.0f, -blocks_high, 0.0f);
+        glTranslatef(1.0f, -grid_height, 0.0f);
     }
 
+    glPopMatrix();
 }
 
-void render()
+float camera_rotation = 0.0f;
+
+void render_scene()
 {
+    // Clear the screen
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Set up the modelview - camera 20 units from the objects
-    glMatrixMode(GL_MODELVIEW);
+    // Set the projection transform
+    glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
+    gluPerspective(45, (float)screen_width/screen_height, 1.f, 100.f);
+
+    // Set up the modelview
+    glMatrixMode(GL_MODELVIEW);
+    // Reset the camera
+    glLoadIdentity();
+    // Move the camera 20 units from the objects
     glTranslatef(0.0f, 0.0f, -20.0f);
 
-    static float rot = 0.0f;
+    // Enable the depth test
+    glEnable(GL_DEPTH_TEST);
 
-    // Update the rotation on the camera
-    rot += 0.001;
-    if (rot > (2 * M_PI)) {
-        rot -= (2 * M_PI);
-    }
+    glColor3f(0.3, 0.3, 0.3);
 
     // Add a little camera movement
-    glRotatef(10, sin(rot), cos(rot), 0.0f);
+    glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
 
     // Draw the scene
-    draw_blocks();
-
-    glutSwapBuffers();
-    glutPostRedisplay();
+    draw_grid();
 }
 
-void checkrows()
+void render_ui()
+{
+    // Set the projection transform
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, screen_width, 0, screen_height, -800.0f, 800.0f);
+
+    // Set up the modelview
+    glMatrixMode(GL_MODELVIEW);
+    // Reset the camera
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+
+    glTranslatef(5.f, 5.f, 0);
+    glColor3f(1.f, 1.f, 1.f);
+    gl_print("Test word");
+}
+
+void check_rows()
 {
     // Go through all the stationary blocks to check if there
     // is a complete solid row
-    for(int j = 0; j < blocks_high; ++j) {
+    for(int j = 0; j < grid_height; ++j) {
         // This flag will become false if this row has a gap
         bool solid = true;
-        for(int i = 0; i < blocks_wide; ++i) {
+        for(int i = 0; i < grid_width; ++i) {
             solid &= slots[i][j];
         }
         // If solid is still true, there were no gaps, so we shift all
         // the rows above down.
         if (solid) {
-            for(int k = 0; k < blocks_wide; ++k) {
-                for(int l = j + 1; l < blocks_high; ++l) {
+            for(int k = 0; k < grid_width; ++k) {
+                for(int l = j + 1; l < grid_height; ++l) {
                     slots[k][l - 1] = slots[k][l];
                 }
-                slots[k][blocks_high - 1] = false;
+                slots[k][grid_height - 1] = false;
             }
             --j;
         }
     }
 }
 
-void step(int)
+void step()
 {
     // Update the current falling block
 
@@ -169,95 +317,104 @@ void step(int)
         // Store this blick in the array of fixed blocks
         slots[block_i][block_j] = true;
         // Set the moving block back at the top
-        block_i = 3; block_j = 12;
+        block_i = 4; block_j = 12;
     } else {
         // Step the moving block down the screen
         --block_j;
     }
 
-    checkrows();
-    glutTimerFunc(step_time, step, 0);
+    check_rows();
 }
 
-void key_pressed(int key, int x, int y)
+void loop()
 {
-    // We have a keypress
-    switch (key) {
-        case GLUT_KEY_UP:
-            // In tetris up is often used to rotate
-            // the object. This is not valid for single blocks
-            break;
-        case GLUT_KEY_DOWN:
-            // Drop the block
-            int j;
-            for(j = block_j; j > 0; --j) {
-                if (slots[block_i][j-1]) {
+    SDL_Event event;
+    int elapsed_time = SDL_GetTicks();
+    int last_step = elapsed_time;
+    int frames_per_second = 0;
+
+    // This is the main program loop. It will run until something sets
+    // the flag to indicate we are done.
+    while (!program_finished) {
+        // Check for events
+        while (SDL_PollEvent(&event)) {
+            switch (event.type) {
+                case SDL_QUIT:
+                    // The user closed the window
+                    program_finished = true;
                     break;
-                }
+                case SDL_KEYDOWN:
+                    // We have a keypress
+                    if ( event.key.keysym.sym == SDLK_ESCAPE ) {
+                        // quit
+                        program_finished = true;
+                    }
+                    if ( event.key.keysym.sym == SDLK_UP ) {
+                        // In tetris up is often used to rotate
+                        // the object. This is not valid for single blocks
+                    }
+                    if ( event.key.keysym.sym == SDLK_DOWN ) {
+                        // Drop the block
+                        int j;
+                        for(j = block_j; j > 0; --j) {
+                            if (slots[block_i][j-1]) {
+                                break;
+                            }
+                        }
+                        block_j = j;
+                    }
+                    if ( event.key.keysym.sym == SDLK_LEFT ) {
+                        // Move block left
+                        if ((block_i > 0) && !slots[block_i - 1][block_j]) {
+                            --block_i;
+                        }
+                    }
+                    if ( event.key.keysym.sym == SDLK_RIGHT ) {
+                        // Move block right
+                        if ((block_i < (grid_width-1)) && !slots[block_i + 1][block_j]) {
+                            ++block_i;
+                        }
+                    }
+                    break;
+                default:
+                    break;
             }
-            block_j = j;
-            break;
-        case GLUT_KEY_LEFT:
-            // Move block left
-            if ((block_i > 0) && !slots[block_i - 1][block_j]) {
-                --block_i;
-            }
-            break;
-        case GLUT_KEY_RIGHT:
-            // Move block right
-            if ((block_i < (blocks_wide-1)) && !slots[block_i + 1][block_j]) {
-                ++block_i;
-            }
-            break;
-        default:
-            break;
+        }
+        // Get the time and check if enough time has elapsed for
+        // the moving block to move
+        int ticks = SDL_GetTicks();
+        ++frames_per_second;
+        if ((ticks - last_step) > step_time) {
+            last_step = ticks;
+            frames_per_second = 0;
+            step();
+        }
+        float delta = (ticks - elapsed_time) / 1000.0f;
+        elapsed_time = ticks;
+
+        // Update the rotation on the camera
+        camera_rotation += delta;
+        if (camera_rotation > (2 * M_PI)) {
+            camera_rotation -= (2 * M_PI);
+        }
+
+        // Render the screen
+        render_scene();
+        render_ui();
+
+        SDL_GL_SwapBuffers();
     }
-}
-
-bool initScreen()
-{
-    const int width = 400;
-    const int height = 400;
-
-    int argc = 1;
-    char * argv [] = { "bonkers", 0 };
-    glutInit(&argc, argv);
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB);
-    glutInitWindowSize(width, height);
-    glutCreateWindow("bonkers");
-    glutDisplayFunc(render);
-    glutSpecialFunc(key_pressed);
-    glutTimerFunc(step_time, step, 0);
-
-    // Setup the viewport transform
-    glViewport(0,0,width,height);
-
-    // Enable the depth test
-    glEnable(GL_DEPTH_TEST);
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-
-    // Set the colour the screen will be when cleared - black
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glColor3f(0.3, 0.3, 0.3);
-
-    // Set the projection transform
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(45, width/height, 1.f, 100.f);
-
-    return true;
 }
 
 int main()
 {
-    if (!initScreen()) {
+    if (!init_graphics()) {
         return 1;
     }
 
     setup();
 
-    glutMainLoop();
+    loop();
     return 0;
 }
 

@@ -1,4 +1,4 @@
-bin_PROGRAMS = bonkers
+bin_PROGRAMS = framework
 
-bonkers_SOURCES = \
-                 bonkers.cpp
+framework_SOURCES = \
+                 framework.cpp
