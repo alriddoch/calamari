@@ -23,11 +23,15 @@ dnl Test for libraries
 SDL_VERSION=1.2.0
 AM_PATH_SDL($SDL_VERSION)
 CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
-LIBS="$LIBS $SDL_LIBS"
+LIBS="$LIBS $SDL_LIBS -L/usr/X11R6/lib"
 
 AC_CHECK_LIB(SDL_image,IMG_Load)
 AC_CHECK_LIB(GL,glViewport)
 AC_CHECK_LIB(GLU,gluPerspective)
+AC_CHECK_LIB(X11,main)
+AC_CHECK_LIB(Xi,main)
+AC_CHECK_LIB(Xmu,main)
+AC_CHECK_LIB(glut,glutInit)
 
 dnl Generate files
 AC_OUTPUT([

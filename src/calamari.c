@@ -7,10 +7,9 @@
 #define M_PI 3.14159265f
 #endif
 
-#include <SDL/SDL.h>
-
 #include <GL/gl.h>
 #include <GL/glu.h>
+#include <GL/glut.h>
 
 #include <cmath>
 
@@ -29,52 +28,6 @@ static int block_j = 11;
 static bool slots[blocks_wide][blocks_high + 1];
 
 static bool done = false;
-
-bool initScreen()
-{
-    const int width = 400;
-    const int height = 400;
-
-    // Initialise SDL
-    if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
-        // std::cerr << "Failed to initialise video" << std::endl << std::flush;
-        return false;
-    }
-
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-
-    SDL_Surface * screen;
-
-    // Create the window
-    if ((screen = SDL_SetVideoMode(width, height, 0, SDL_OPENGL)) == NULL) {
-        // std::cerr << "Failed to set video mode" << std::endl << std::flush;
-        SDL_Quit();
-        return false;
-    }
-
-    // Setup the viewport transform
-    glViewport(0,0,width,height);
-
-    // Enable the depth test
-    glEnable(GL_DEPTH_TEST);
-
-    glEnableClientState(GL_VERTEX_ARRAY);
-
-    // Set the colour the screen will be when cleared - black
-    glClearColor(0.0, 0.0, 0.0, 0.0);
-    glColor3f(0.3, 0.3, 0.3);
-
-    // Set the projection transform
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    gluPerspective(45, width/height, 1.f, 100.f);
-
-    return true;
-}
 
 void clear()
 {
@@ -155,8 +108,6 @@ void draw_blocks()
 
 }
 
-float rot = 0.0f;
-
 void render()
 {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -166,13 +117,22 @@ void render()
     glLoadIdentity();
     glTranslatef(0.0f, 0.0f, -20.0f);
 
+    static float rot = 0.0f;
+
+    // Update the rotation on the camera
+    rot += 0.001;
+    if (rot > (2 * M_PI)) {
+        rot -= (2 * M_PI);
+    }
+
     // Add a little camera movement
     glRotatef(10, sin(rot), cos(rot), 0.0f);
 
     // Draw the scene
     draw_blocks();
 
-    SDL_GL_SwapBuffers();
+    glutSwapBuffers();
+    glutPostRedisplay();
 }
 
 void checkrows()
@@ -199,7 +159,7 @@ void checkrows()
     }
 }
 
-void step()
+void step(int)
 {
     // Update the current falling block
 
@@ -216,83 +176,77 @@ void step()
     }
 
     checkrows();
+    glutTimerFunc(step_time, step, 0);
 }
 
-void loop()
+void key_pressed(int key, int x, int y)
 {
-    SDL_Event event;
-    int elapsed_time = SDL_GetTicks();
-    int last_step = elapsed_time;
-    int fps = 0;
-
-    // This is the main program loop. It will run until something sets
-    // the flag to indicate we are done.
-    while (!done) {
-        // Check for events
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_QUIT:
-                    // The user closed the window
-                    done = true;
+    // We have a keypress
+    switch (key) {
+        case GLUT_KEY_UP:
+            // In tetris up is often used to rotate
+            // the object. This is not valid for single blocks
+            break;
+        case GLUT_KEY_DOWN:
+            // Drop the block
+            int j;
+            for(j = block_j; j > 0; --j) {
+                if (slots[block_i][j-1]) {
                     break;
-                case SDL_KEYDOWN:
-                    // We have a keypress
-                    if ( event.key.keysym.sym == SDLK_ESCAPE ) {
-                        // quit
-                        done = true;
-                    }
-                    if ( event.key.keysym.sym == SDLK_UP ) {
-                        // In tetris up is often used to rotate
-                        // the object. This is not valid for single blocks
-                    }
-                    if ( event.key.keysym.sym == SDLK_DOWN ) {
-                        // Drop the block
-                        int j;
-                        for(j = block_j; j > 0; --j) {
-                            if (slots[block_i][j-1]) {
-                                break;
-                            }
-                        }
-                        block_j = j;
-                    }
-                    if ( event.key.keysym.sym == SDLK_LEFT ) {
-                        // Move block left
-                        if ((block_i > 0) && !slots[block_i - 1][block_j]) {
-                            --block_i;
-                        }
-                    }
-                    if ( event.key.keysym.sym == SDLK_RIGHT ) {
-                        // Move block right
-                        if ((block_i < (blocks_wide-1)) && !slots[block_i + 1][block_j]) {
-                            ++block_i;
-                        }
-                    }
-                    break;
-                default:
-                    break;
+                }
             }
-        }
-        // Get the time and check if enough time has elapsed for
-        // the moving block to move
-        int ticks = SDL_GetTicks();
-        ++fps;
-        if ((ticks - last_step) > step_time) {
-            last_step = ticks;
-            fps = 0;
-            step();
-        }
-        float delta = (ticks - elapsed_time) / 1000.0f;
-        elapsed_time = ticks;
-
-        // Update the rotation on the camera
-        rot += delta;
-        if (rot > (2 * M_PI)) {
-            rot -= (2 * M_PI);
-        }
-
-        // Render the screen
-        render();
+            block_j = j;
+            break;
+        case GLUT_KEY_LEFT:
+            // Move block left
+            if ((block_i > 0) && !slots[block_i - 1][block_j]) {
+                --block_i;
+            }
+            break;
+        case GLUT_KEY_RIGHT:
+            // Move block right
+            if ((block_i < (blocks_wide-1)) && !slots[block_i + 1][block_j]) {
+                ++block_i;
+            }
+            break;
+        default:
+            break;
     }
+}
+
+bool initScreen()
+{
+    const int width = 400;
+    const int height = 400;
+
+    int argc = 1;
+    char * argv [] = { "bonkers", 0 };
+    glutInit(&argc, argv);
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_DEPTH | GLUT_RGB);
+    glutInitWindowSize(width, height);
+    glutCreateWindow("bonkers");
+    glutDisplayFunc(render);
+    glutSpecialFunc(key_pressed);
+    glutTimerFunc(step_time, step, 0);
+
+    // Setup the viewport transform
+    glViewport(0,0,width,height);
+
+    // Enable the depth test
+    glEnable(GL_DEPTH_TEST);
+
+    glEnableClientState(GL_VERTEX_ARRAY);
+
+    // Set the colour the screen will be when cleared - black
+    glClearColor(0.0, 0.0, 0.0, 0.0);
+    glColor3f(0.3, 0.3, 0.3);
+
+    // Set the projection transform
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    gluPerspective(45, width/height, 1.f, 100.f);
+
+    return true;
 }
 
 int main()
@@ -303,7 +257,7 @@ int main()
 
     setup();
 
-    loop();
+    glutMainLoop();
     return 0;
 }
 
