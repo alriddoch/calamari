@@ -24,9 +24,11 @@
 static const int screen_width = 600;
 static const int screen_height = 400;
 
+// Number of squares in the grid. The number of points is this number +1.
 static const int grid_width = 12;
 static const int grid_height = 12;
 
+// Number of milliseconds between steps in the game model.
 static const int step_time = 1000;
 
 // Variables that store the game state
@@ -34,14 +36,25 @@ static const int step_time = 1000;
 static int block_x = 4;
 static int block_y = 11;
 
-static bool slots[grid_width][grid_height + 1];
+// Current blocks on the grid, stored as true if there is a block at the
+// given localtion.
+static bool slots[grid_width][grid_height];
 
+// Flag used to inform the main loop if the program should now terminate.
+// Set this to true if its done.
 static bool program_finished = false;
 
+// Calculated frames per second to display. Very useful feedback when
+// debugging graphics performance problems.
 int average_frames_per_second;
+
+// Texture handles for the texture used to handle printing text on the
+// screen.
 GLuint textTexture;
 GLuint textBase;
 
+// Initialise the graphics subsystem. This is pretty much boiler plate
+// code with very little to worry about.
 bool init_graphics()
 {
     // Initialise SDL
@@ -115,6 +128,7 @@ bool init_graphics()
     return true;
 }
 
+// Clear the grid state.
 void clear()
 {
     for(int i = 0; i < grid_width; ++i) {
@@ -124,6 +138,7 @@ void clear()
     }
 }
 
+// Print a text string on the screen at the current position.
 void gl_print(const char * str)
 {
     glPushMatrix();
@@ -288,6 +303,8 @@ void render_scene()
 }
 
 // Draw any text output and other screen oriented user interface
+// If you want any kind of text or other information overlayed on top
+// of the 3d view, put it here.
 void render_interface()
 {
     char buf[256];
@@ -308,16 +325,20 @@ void render_interface()
 
     // Print the number of frames per second. This is essential performance
     // information when developing 3D graphics.
+
+    // Use glTranslatef to go to the screen coordinates where we want the
+    // text. The origin is the bottom left by default in OpenGL.
     glTranslatef(5.f, 5.f, 0);
     glColor3f(1.f, 1.f, 1.f);
     sprintf(buf, "FPS: %d", average_frames_per_second);
     gl_print(buf);
 }
 
-// Handle a mouse click. Coordinates are given in OpenGL style coordinates
-// with the origin in the bottom left.
+// Handle a mouse click. Call this function with the screen coordinates where
+// the mouse was clicked, in OpenGL format with the origin in the bottom left.
 // This function exactly mimics rendering a scene, and then detects which
-// elements of the scene were under the mouse pointer when the click occured.
+// grid location of the scene were under the mouse pointer when the click
+// occured.
 void mouse_click(unsigned int x, unsigned int y)
 {
     GLuint selectBuf[512];
@@ -437,6 +458,8 @@ void step()
 {
 }
 
+// The main program loop function. This does not return until the program
+// has finished.
 void loop()
 {
     SDL_Event event;
