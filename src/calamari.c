@@ -15,6 +15,7 @@
 #include "font.h"
 
 #include <iostream>
+#include <map>
 
 #include <cmath>
 #include <cstring>
@@ -38,7 +39,7 @@ static int block_y = 11;
 
 // Current blocks on the grid, stored as true if there is a block at the
 // given localtion.
-static bool slots[grid_width][grid_height];
+std::map<std::string, float> properties[grid_width][grid_height];
 
 // Flag used to inform the main loop if the program should now terminate.
 // Set this to true if its done.
@@ -132,8 +133,8 @@ bool init_graphics()
 void clear()
 {
     for(int i = 0; i < grid_width; ++i) {
-        for(int j = 0; j <= grid_height; ++j) {
-            slots[i][j] = false;
+        for(int j = 0; j < grid_height; ++j) {
+            properties[i][j]["block"] = 0;
         }
     }
 }
@@ -252,7 +253,7 @@ void draw_grid()
     // Draw blocks whereever one should be placed on the grid.
     for(int i = 0; i < grid_width; ++i) {
         for(int j = 0; j < grid_height; ++j) {
-            if ((slots[i][j])) {
+            if ((properties[i][j]["block"])) {
                 draw_unit_cube();
             }
             glTranslatef(0.0f, 1.0f, 0.0f);
@@ -446,7 +447,7 @@ void mouse_click(unsigned int x, unsigned int y)
 
     // Place or remove a block on the square the user clicked.
     if (hit_x < grid_width && hit_y < grid_height) {
-        slots[hit_x][hit_y] = !slots[hit_x][hit_y];
+        properties[hit_x][hit_y]["block"] = !properties[hit_x][hit_y]["block"];
     }
 }
 
@@ -484,25 +485,25 @@ void loop()
                         program_finished = true;
                     }
                     if ( event.key.keysym.sym == SDLK_UP ) {
-                        if ((block_y < (grid_height-1)) && !slots[block_x][block_y + 1]) {
+                        if ((block_y < (grid_height-1)) && !properties[block_x][block_y + 1]["block"]) {
                             ++block_y;
                         }
                     }
                     if ( event.key.keysym.sym == SDLK_DOWN ) {
                         // Move block down
-                        if ((block_y > 0) && !slots[block_x][block_y - 1]) {
+                        if ((block_y > 0) && !properties[block_x][block_y - 1]["block"]) {
                             --block_y;
                         }
                     }
                     if ( event.key.keysym.sym == SDLK_LEFT ) {
                         // Move block left
-                        if ((block_x > 0) && !slots[block_x - 1][block_y]) {
+                        if ((block_x > 0) && !properties[block_x - 1][block_y]["block"]) {
                             --block_x;
                         }
                     }
                     if ( event.key.keysym.sym == SDLK_RIGHT ) {
                         // Move block right
-                        if ((block_x < (grid_width-1)) && !slots[block_x + 1][block_y]) {
+                        if ((block_x < (grid_width-1)) && !properties[block_x + 1][block_y]["block"]) {
                             ++block_x;
                         }
                     }
