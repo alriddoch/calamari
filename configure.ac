@@ -1,12 +1,13 @@
 dnl Initialise autoconf
 
-AC_INIT(src/framework.cpp)
+AC_INIT(gridframe, 1.0.0, alriddoch@zepler.org)
+AC_CONFIG_SRCDIR([src/framework.cpp])
+
+AC_CANONICAL_SYSTEM
 
 dnl Initialise automake
 
-AM_INIT_AUTOMAKE(gridframe, 1.0.0)
-
-AM_MAINTAINER_MODE
+AM_INIT_AUTOMAKE
 
 dnl Test for C++ compiler
 
@@ -15,7 +16,7 @@ AC_PROG_CXX
 CFLAGS="$CFLAGS -Wall"
 CXXFLAGS="$CXXFLAGS -Wall"
 
-AC_LANG_CPLUSPLUS
+AC_LANG(C++)
 
 dnl Test for libraries
 
@@ -32,7 +33,8 @@ AC_CHECK_LIB(Xi,main)
 AC_CHECK_LIB(Xmu,main)
 
 dnl Generate files
-AC_OUTPUT([
+AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 ])
+AC_OUTPUT
