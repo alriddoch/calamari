@@ -15,6 +15,7 @@
 #include "font.h"
 
 #include <iostream>
+#include <string>
 #include <map>
 
 #include <cmath>
