@@ -1,5 +1,11 @@
 2006-02-25  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.cpp: Add input processing to handle the state of the
+	  tank drive keys, and implement an update function to update
+	  the position of the calamari based on input controls.
+
+2006-02-25  Al Riddoch  <alriddoch@zepler.org>
+
 	* Update name of package in all build files, and remove irrelevant
 	  extra copies of the source.
 

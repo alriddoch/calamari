@@ -15,6 +15,7 @@
 #include "font.h"
 
 #include <iostream>
+#include <algorithm>
 
 #include <cmath>
 #include <cstring>
@@ -35,6 +36,19 @@ static const int step_time = 1000;
 
 static int block_x = 4;
 static int block_y = 11;
+
+static float pos_x = 0;
+static float pos_y = 0;
+
+static float angle = 0;
+
+static float vel = 0;
+static float ang_vel = 0;
+
+static bool key_d = false;
+static bool key_c = false;
+static bool key_k = false;
+static bool key_m = false;
 
 // Structure to hold the properties of a single square on the grid.
 // If you want to add more information to the grid, add new members here.
@@ -278,9 +292,13 @@ float camera_rotation = 0.0f;
 
 void grid_origin()
 {
+    glRotatef(-70, 1, 0, 0);
+    glRotatef(angle, 0, 0, 1);
+
     glTranslatef(0, 0, -1);
     // Add a little camera movement
     glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+    glTranslatef(-pos_x, -pos_y, 0);
 }
 
 void camera_pos()
@@ -291,8 +309,6 @@ void camera_pos()
     glLoadIdentity();
     // Move the camera 20 units from the objects
     glTranslatef(0.0f, 0.0f, -10.0f);
-
-    glRotatef(-70, 1, 0, 0);
 }
 
 void render_scene()
@@ -477,6 +493,32 @@ void step()
 {
 }
 
+void update()
+{
+    if (key_d && key_m && !(key_c || key_k)) {
+        angle -= 0.1;
+    }
+    if (key_c && key_k && !(key_d || key_m)) {
+        angle += 0.1;
+    }
+    float ang_rad = (angle / 180) * M_PI;
+    if (key_d && key_k && !(key_c || key_m)) {
+        vel += 0.0001;
+        vel = std::min(vel, .01f);
+    } else if (key_c && key_m && !(key_d || key_k)) {
+        vel -= 0.0001;
+        vel = std::max(vel, -.01f);
+    } else if (vel < 0.f) {
+        vel += 0.0001;
+        vel = std::min(vel, 0.f);
+    } else {
+        vel -= 0.0001;
+        vel = std::max(vel, 0.f);
+    }
+    pos_x += vel * sin(ang_rad);
+    pos_y += vel * cos(ang_rad);
+}
+
 // The main program loop function. This does not return until the program
 // has finished.
 void loop()
@@ -525,6 +567,32 @@ void loop()
                             ++block_x;
                         }
                     }
+                    if ( event.key.keysym.sym == SDLK_d ) {
+                        key_d = true;
+                    }
+                    if ( event.key.keysym.sym == SDLK_c ) {
+                        key_c = true;
+                    }
+                    if ( event.key.keysym.sym == SDLK_k ) {
+                        key_k = true;
+                    }
+                    if ( event.key.keysym.sym == SDLK_m ) {
+                        key_m = true;
+                    }
+                    break;
+                case SDL_KEYUP:
+                    if ( event.key.keysym.sym == SDLK_d ) {
+                        key_d = false;
+                    }
+                    if ( event.key.keysym.sym == SDLK_c ) {
+                        key_c = false;
+                    }
+                    if ( event.key.keysym.sym == SDLK_k ) {
+                        key_k = false;
+                    }
+                    if ( event.key.keysym.sym == SDLK_m ) {
+                        key_m = false;
+                    }
                     break;
                 case SDL_MOUSEBUTTONDOWN:
                     if (event.button.button == SDL_BUTTON_LEFT) {
@@ -538,6 +606,8 @@ void loop()
         }
 
         ++frame_count;
+
+        update();
 
         // Get the time and check if a complete time step has passed.
         // For step based games like Tetris, this is used to update the
