@@ -4,6 +4,9 @@
 
 #ifdef WIN32
 #include <Windows.h>
+#endif
+
+#ifndef M_PI
 #define M_PI 3.14159265f
 #endif
 
@@ -14,11 +17,13 @@
 
 #include "font.h"
 
-#include <iostream>
-#include <algorithm>
+#include <math.h>
+#include <limits.h>
+#include <string.h>
 
-#include <cmath>
-#include <cstring>
+typedef int bool;
+#define false 0
+#define true 1
 
 // Constants
 
@@ -26,8 +31,8 @@ static const int screen_width = 600;
 static const int screen_height = 400;
 
 // Number of squares in the grid. The number of points is this number +1.
-static const int grid_width = 12;
-static const int grid_height = 12;
+#define grid_width 12
+#define grid_height 12
 
 // Number of milliseconds between steps in the game model.
 static const int step_time = 1000;
@@ -132,7 +137,8 @@ bool init_graphics()
     textBase = glGenLists(256);
     float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
     glVertexPointer(2, GL_FLOAT, 0, vertices);
-    for(int loop=0; loop<256; loop++) {
+    int loop;
+    for(loop=0; loop<256; loop++) {
         float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
         float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
 
@@ -157,8 +163,9 @@ bool init_graphics()
 // Clear the grid state.
 void clear()
 {
-    for(int i = 0; i < grid_width; ++i) {
-        for(int j = 0; j < grid_height; ++j) {
+    int i, j;
+    for(i = 0; i < grid_width; ++i) {
+        for(j = 0; j < grid_height; ++j) {
             properties[i][j].block = false;
         }
     }
@@ -237,6 +244,7 @@ void draw_unit_cube()
 
 void draw_grid()
 {
+    int i, j;
     float horizontal_line_vertices[] = {
         0.f, 0.f, 0.f,
         grid_width, 0.f, 0.f,
@@ -255,7 +263,7 @@ void draw_grid()
 
     // Draw vertical lines
     glVertexPointer(3, GL_FLOAT, 0, vertical_line_vertices);
-    for (int i = 0; i <= grid_width; ++i) {
+    for (i = 0; i <= grid_width; ++i) {
         glDrawArrays(GL_LINES, 0, 2);
         glTranslatef(1.0f, 0.0f, 0.0f);
     }
@@ -266,7 +274,7 @@ void draw_grid()
 
     // Draw horizontal lines
     glVertexPointer(3, GL_FLOAT, 0, horizontal_line_vertices);
-    for (int j = 0; j <= grid_height; ++j) {
+    for (j = 0; j <= grid_height; ++j) {
         glDrawArrays(GL_LINES, 0, 2);
         glTranslatef(0.0f, 1.0f, 0.0f);
     }
@@ -276,8 +284,8 @@ void draw_grid()
     glPushMatrix();
 
     // Draw blocks whereever one should be placed on the grid.
-    for(int i = 0; i < grid_width; ++i) {
-        for(int j = 0; j < grid_height; ++j) {
+    for(i = 0; i < grid_width; ++i) {
+        for(j = 0; j < grid_height; ++j) {
             if ((properties[i][j].block)) {
                 draw_unit_cube();
             }
@@ -368,11 +376,20 @@ void render_interface()
     // Print the number of frames per second. This is essential performance
     // information when developing 3D graphics.
 
+    glPushMatrix();
     // Use glTranslatef to go to the screen coordinates where we want the
     // text. The origin is the bottom left by default in OpenGL.
     glTranslatef(5.f, 5.f, 0);
     glColor3f(1.f, 1.f, 1.f);
     sprintf(buf, "FPS: %d", average_frames_per_second);
+    gl_print(buf);
+    glPopMatrix();
+
+    glTranslatef(5.f, screen_height - 16 - 5, 0);
+    int metres = floor(scale);
+    int centimetres = floor(fmod(scale, 1) * 100.f);
+    int milimetres = floor(fmod(scale, .01) * 1000.f);
+    sprintf(buf, "%dm %dcm %dmm", metres, centimetres, milimetres);
     gl_print(buf);
 }
 
@@ -383,6 +400,7 @@ void render_interface()
 // occured.
 void mouse_click(unsigned int x, unsigned int y)
 {
+    int i, j;
     GLuint selectBuf[512];
     GLfloat square_vertices[] = { 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
                                   1.f, 1.f, 0.f, 0.f, 1.f, 0.f };
@@ -426,8 +444,8 @@ void mouse_click(unsigned int x, unsigned int y)
 
     glVertexPointer(3, GL_FLOAT, 0, square_vertices);
 
-    for(int i = 0; i < grid_width; ++i) {
-        for(int j = 0; j < grid_height; ++j) {
+    for(i = 0; i < grid_width; ++i) {
+        for(j = 0; j < grid_height; ++j) {
             // Before we render each grid square, we specify the name by
             // loading it into the top of the name stack. The name
             // is derived from the coordinates of the square, so that later
@@ -461,7 +479,7 @@ void mouse_click(unsigned int x, unsigned int y)
     GLuint * ptr = &selectBuf[0];
     GLuint minDepth = UINT_MAX, noNames = 0;
     GLuint * namePtr = 0;
-    for (int i = 0; i < hits; i++) {
+    for (i = 0; i < hits; i++) {
         int names = *(ptr++);
         // std::cout << "{" << *ptr << "}";
         // Check if this hit is closer to the viewer than the last one we

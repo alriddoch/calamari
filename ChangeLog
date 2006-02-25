@@ -1,5 +1,10 @@
 2006-02-25  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Get rid of the C++isms. Add code to display the
+	  size of the calamari.
+
+2006-02-25  Al Riddoch  <alriddoch@zepler.org>
+
 	* configure.ac, src/Makefile.am, src/calamari.c: Convert to nice
 	  simple shiny C for the code.
 
