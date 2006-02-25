@@ -276,6 +276,13 @@ void draw_grid()
 
 float camera_rotation = 0.0f;
 
+void grid_origin()
+{
+    glTranslatef(0, 0, -1);
+    // Add a little camera movement
+    glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+}
+
 void camera_pos()
 {
     // Set up the modelview
@@ -283,9 +290,9 @@ void camera_pos()
     // Reset the camera
     glLoadIdentity();
     // Move the camera 20 units from the objects
-    glTranslatef(0.0f, 0.0f, -20.0f);
-    // Add a little camera movement
-    glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+    glTranslatef(0.0f, 0.0f, -10.0f);
+
+    glRotatef(-70, 1, 0, 0);
 }
 
 void render_scene()
@@ -303,6 +310,11 @@ void render_scene()
 
     // Set the camera position
     camera_pos();
+
+    GLUquadric * q = gluNewQuadric();
+    gluSphere(q, 1, 10, 10);
+
+    grid_origin();
 
     // Draw the scene
     draw_grid();
@@ -371,6 +383,7 @@ void mouse_click(unsigned int x, unsigned int y)
 
         // Set the camera position
         camera_pos();
+        grid_origin();
     }
 
     // Each thing we render will have a numerical name that we must later use
