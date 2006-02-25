@@ -1,7 +1,7 @@
 dnl Initialise autoconf
 
-AC_INIT([gridframe],[1.0.0],[alriddoch@zepler.org])
-AC_CONFIG_SRCDIR([src/framework.cpp])
+AC_INIT([calamari],[1.0.0],[alriddoch@zepler.org])
+AC_CONFIG_SRCDIR([src/calamari.cpp])
 
 AC_CANONICAL_TARGET
 

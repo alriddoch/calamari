@@ -1,4 +1,4 @@
-bin_PROGRAMS = framework
+bin_PROGRAMS = calamari
 
-framework_SOURCES = \
-                 framework.cpp font.h
+calamari_SOURCES = \
+                 calamari.cpp font.h
