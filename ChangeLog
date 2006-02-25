@@ -1,5 +1,10 @@
 2006-02-25  Al Riddoch  <alriddoch@zepler.org>
 
+	* configure.ac, src/Makefile.am, src/calamari.c: Convert to nice
+	  simple shiny C for the code.
+
+2006-02-25  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.cpp: Modify camera_pos function so that calamari
 	  remains the same orientation relative to the world when the
 	  camera rotates around it. Modify update() so it takes the time

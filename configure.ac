@@ -1,7 +1,7 @@
 dnl Initialise autoconf
 
 AC_INIT([calamari],[1.0.0],[alriddoch@zepler.org])
-AC_CONFIG_SRCDIR([src/calamari.cpp])
+AC_CONFIG_SRCDIR([src/calamari.c])
 
 AC_CANONICAL_TARGET
 
@@ -11,12 +11,12 @@ AM_INIT_AUTOMAKE
 
 dnl Test for C++ compiler
 
-AC_PROG_CXX
+AC_PROG_CC
 
 CFLAGS="$CFLAGS -Wall"
 CXXFLAGS="$CXXFLAGS -Wall"
 
-AC_LANG(C++)
+AC_LANG(C)
 
 dnl Test for libraries
 
