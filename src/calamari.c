@@ -37,6 +37,8 @@ static const int step_time = 1000;
 static int block_x = 4;
 static int block_y = 11;
 
+static float scale = 0.1f;
+
 static float pos_x = 0;
 static float pos_y = 0;
 
@@ -49,6 +51,10 @@ static bool key_d = false;
 static bool key_c = false;
 static bool key_k = false;
 static bool key_m = false;
+
+static const float max_velocity = 3.f;
+static const float max_accel = 1.f;
+static const float max_decel = 3.f;
 
 // Structure to hold the properties of a single square on the grid.
 // If you want to add more information to the grid, add new members here.
@@ -292,10 +298,8 @@ float camera_rotation = 0.0f;
 
 void grid_origin()
 {
-    glRotatef(-70, 1, 0, 0);
-    glRotatef(angle, 0, 0, 1);
-
     glTranslatef(0, 0, -1);
+    glScalef(1.f/scale, 1.f/scale, 1.f/scale);
     // Add a little camera movement
     glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
     glTranslatef(-pos_x, -pos_y, 0);
@@ -309,6 +313,10 @@ void camera_pos()
     glLoadIdentity();
     // Move the camera 20 units from the objects
     glTranslatef(0.0f, 0.0f, -10.0f);
+
+    glRotatef(-70, 1, 0, 0);
+    glRotatef(angle, 0, 0, 1);
+
 }
 
 void render_scene()
@@ -328,7 +336,7 @@ void render_scene()
     camera_pos();
 
     GLUquadric * q = gluNewQuadric();
-    gluSphere(q, 1, 10, 10);
+    gluSphere(q, 1, 8, 8);
 
     grid_origin();
 
@@ -493,30 +501,40 @@ void step()
 {
 }
 
-void update()
+void update(float delta)
 {
     if (key_d && key_m && !(key_c || key_k)) {
-        angle -= 0.1;
-    }
-    if (key_c && key_k && !(key_d || key_m)) {
         angle += 0.1;
     }
-    float ang_rad = (angle / 180) * M_PI;
-    if (key_d && key_k && !(key_c || key_m)) {
-        vel += 0.0001;
-        vel = std::min(vel, .01f);
-    } else if (key_c && key_m && !(key_d || key_k)) {
-        vel -= 0.0001;
-        vel = std::max(vel, -.01f);
-    } else if (vel < 0.f) {
-        vel += 0.0001;
-        vel = std::min(vel, 0.f);
-    } else {
-        vel -= 0.0001;
-        vel = std::max(vel, 0.f);
+    if (key_c && key_k && !(key_d || key_m)) {
+        angle -= 0.1;
     }
-    pos_x += vel * sin(ang_rad);
-    pos_y += vel * cos(ang_rad);
+    if (key_d && key_k && !(key_c || key_m)) {
+        if (vel > 0) {
+            vel += delta * max_accel;
+        } else {
+            vel += delta * max_decel;
+        }
+        vel = fminf(vel, max_velocity);
+    } else if (key_c && key_m && !(key_d || key_k)) {
+        if (vel < 0) {
+            vel -= delta * max_accel;
+        } else {
+            vel -= delta * max_decel;
+        }
+        vel = fmaxf(vel, -max_velocity);
+    } else if (vel < 0.f) {
+        vel += delta;
+        vel = fminf(vel, 0.f);
+    } else {
+        vel -= delta;
+        vel = fmaxf(vel, 0.f);
+    }
+    float ang_rad = (angle / 180) * M_PI;
+    pos_x += vel * delta * scale * sin(ang_rad);
+    pos_y += vel * delta * scale * cos(ang_rad);
+
+    scale *= (1 + (delta * 0.1f));
 }
 
 // The main program loop function. This does not return until the program
@@ -607,8 +625,6 @@ void loop()
 
         ++frame_count;
 
-        update();
-
         // Get the time and check if a complete time step has passed.
         // For step based games like Tetris, this is used to update the
         // the game state
@@ -622,13 +638,17 @@ void loop()
 
         // Calculate the time in seconds since the last frame
         // For a real time program this would be used to update the game state
-        float delta = (ticks - elapsed_time) / 1000.0f;
-        elapsed_time = ticks;
+        int frame_ticks = (ticks - elapsed_time);
+        if (frame_ticks > 0) {
+            float delta = frame_ticks / 1000.0f;
+            update(delta);
+            elapsed_time = ticks;
 
-        // Update the rotation on the camera
-        camera_rotation += delta;
-        if (camera_rotation > (2 * M_PI)) {
-            camera_rotation -= (2 * M_PI);
+            // Update the rotation on the camera
+            camera_rotation += delta;
+            if (camera_rotation > (2 * M_PI)) {
+                camera_rotation -= (2 * M_PI);
+            }
         }
 
         // Render the screen
