@@ -52,10 +52,10 @@ static float angle = 0;
 static float vel = 0;
 static float ang_vel = 0;
 
-static bool key_d = false;
-static bool key_c = false;
-static bool key_k = false;
-static bool key_m = false;
+static bool key_lf = false;
+static bool key_lb = false;
+static bool key_rf = false;
+static bool key_rb = false;
 
 static const float max_velocity = 3.f;
 static const float max_accel = 1.f;
@@ -521,20 +521,57 @@ void step()
 
 void update(float delta)
 {
-    if (key_d && key_m && !(key_c || key_k)) {
+    if (key_lf) {
+        if (key_rf) {
+            if (!(key_lb || key_rb)) {
+                // accelerate forwards
+            } else if (key_lb && key_rb) {
+                // flip
+            }
+        } else {
+            if (!key_lb) {
+                if (key_rb) {
+                    // rotate right
+                } else {
+                    // coast right
+                }
+            }
+        }
+    } else {
+        if (key_rf) {
+            if (!key_rb) {
+                if (key_lb) {
+                    // rotate left
+                } else {
+                    // coast right
+                }
+            }
+        } else {
+            if (key_lb) {
+                if (!key_rb) {
+                    // reverse coast left
+                }
+            } else if (key_rb) {
+                if (!key_lb) {
+                    // reverse coast right
+                }
+            }
+        }
+    }
+    if (key_lf && key_rb && !(key_lb || key_rf)) {
         angle += 0.1;
     }
-    if (key_c && key_k && !(key_d || key_m)) {
+    if (key_lb && key_rf && !(key_lf || key_rb)) {
         angle -= 0.1;
     }
-    if (key_d && key_k && !(key_c || key_m)) {
+    if (key_lf && key_rf && !(key_lb || key_rb)) {
         if (vel > 0) {
             vel += delta * max_accel;
         } else {
             vel += delta * max_decel;
         }
         vel = fminf(vel, max_velocity);
-    } else if (key_c && key_m && !(key_d || key_k)) {
+    } else if (key_lb && key_rb && !(key_lf || key_rf)) {
         if (vel < 0) {
             vel -= delta * max_accel;
         } else {
@@ -553,6 +590,8 @@ void update(float delta)
     pos_y += vel * delta * scale * cos(ang_rad);
 
     scale *= (1 + (delta * 0.1f));
+
+    printf("%f %f\n", scale, log10(scale));
 }
 
 // The main program loop function. This does not return until the program
@@ -604,30 +643,30 @@ void loop()
                         }
                     }
                     if ( event.key.keysym.sym == SDLK_d ) {
-                        key_d = true;
+                        key_lf = true;
                     }
                     if ( event.key.keysym.sym == SDLK_c ) {
-                        key_c = true;
+                        key_lb = true;
                     }
                     if ( event.key.keysym.sym == SDLK_k ) {
-                        key_k = true;
+                        key_rf = true;
                     }
                     if ( event.key.keysym.sym == SDLK_m ) {
-                        key_m = true;
+                        key_rb = true;
                     }
                     break;
                 case SDL_KEYUP:
                     if ( event.key.keysym.sym == SDLK_d ) {
-                        key_d = false;
+                        key_lf = false;
                     }
                     if ( event.key.keysym.sym == SDLK_c ) {
-                        key_c = false;
+                        key_lb = false;
                     }
                     if ( event.key.keysym.sym == SDLK_k ) {
-                        key_k = false;
+                        key_rf = false;
                     }
                     if ( event.key.keysym.sym == SDLK_m ) {
-                        key_m = false;
+                        key_rb = false;
                     }
                     break;
                 case SDL_MOUSEBUTTONDOWN:

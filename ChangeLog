@@ -1,3 +1,9 @@
+2006-02-26  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Rename control flags to by synbolic of the keys
+	  function, not the currently hardcoded binding. Add stub logic
+	  for handling all the cases that can occur in the input system.
+
 2006-02-25  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Get rid of the C++isms. Add code to display the
