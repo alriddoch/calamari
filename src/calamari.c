@@ -523,6 +523,8 @@ void step()
 void update(float delta)
 {
     static bool flipped = false;
+    bool vel_changed = false;
+
     if (key_lf) {
         printf("lf pressed\n");
         if (key_rf) {
@@ -530,13 +532,27 @@ void update(float delta)
             if (!(key_lb || key_rb)) {
                 printf("forwards\n");
                 // accelerate forwards
+                if (vel > 0) {
+                    vel += delta * max_accel;
+                } else {
+                    vel += delta * max_decel;
+                }
+                vel_changed = true;
             }
         } else {
             if (!key_lb) {
                 if (key_rb) {
                     // rotate right
+                    angle += delta * 50;
                 } else {
                     // coast right
+                    angle += delta * 20;
+                    if (vel > 0) {
+                        vel += delta * max_accel / 2;
+                    } else {
+                        vel += delta * max_decel / 2;
+                    }
+                    vel_changed = true;
                 }
             }
         }
@@ -545,18 +561,48 @@ void update(float delta)
             if (!key_rb) {
                 if (key_lb) {
                     // rotate left
+                    angle -= delta * 50;
                 } else {
-                    // coast right
+                    // coast left
+                    angle -= delta * 20;
+                    if (vel > 0) {
+                        vel += delta * max_accel / 2;
+                    } else {
+                        vel += delta * max_decel / 2;
+                    }
+                    vel_changed = true;
                 }
             }
         } else {
             if (key_lb) {
-                if (!key_rb) {
+                if (key_rb) {
+                    // reverse
+                    if (vel < 0) {
+                        vel -= delta * max_accel;
+                    } else {
+                        vel -= delta * max_decel;
+                    }
+                    vel_changed = true;
+                } else {
                     // reverse coast left
+                    angle -= delta * 20;
+                    if (vel < 0) {
+                        vel -= delta * max_accel / 2;
+                    } else {
+                        vel -= delta * max_decel / 2;
+                    }
+                    vel_changed = true;
                 }
             } else if (key_rb) {
                 if (!key_lb) {
                     // reverse coast right
+                    angle += delta * 20;
+                    if (vel < 0) {
+                        vel -= delta * max_accel / 2;
+                    } else {
+                        vel -= delta * max_decel / 2;
+                    }
+                    vel_changed = true;
                 }
             }
         }
@@ -565,38 +611,29 @@ void update(float delta)
         if (!flipped) {
             angle += 180;
             vel = -vel;
+            vel_changed = true;
             flipped = true;
         }
     } else {
         flipped = false;
     }
-    if (key_lf && key_rb && !(key_lb || key_rf)) {
-        angle += 0.1;
-    }
-    if (key_lb && key_rf && !(key_lf || key_rb)) {
-        angle -= 0.1;
-    }
-    if (key_lf && key_rf && !(key_lb || key_rb)) {
-        if (vel > 0) {
-            vel += delta * max_accel;
-        } else {
-            vel += delta * max_decel;
-        }
-        vel = fminf(vel, max_velocity);
-    } else if (key_lb && key_rb && !(key_lf || key_rf)) {
-        if (vel < 0) {
-            vel -= delta * max_accel;
-        } else {
-            vel -= delta * max_decel;
-        }
+
+    if (vel_changed) {
+        // If the controls have had an effect on velocity, clamp it to
+        // the valid range
         vel = fmaxf(vel, -max_velocity);
-    } else if (vel < 0.f) {
-        vel += delta;
-        vel = fminf(vel, 0.f);
+        vel = fminf(vel, max_velocity);
     } else {
-        vel -= delta;
-        vel = fmaxf(vel, 0.f);
+        // Otherwise coast gently to a stop
+        if (vel < 0.f) {
+            vel += delta;
+            vel = fminf(vel, 0.f);
+        } else {
+            vel -= delta;
+            vel = fmaxf(vel, 0.f);
+        }
     }
+
     float ang_rad = (angle / 180) * M_PI;
     pos_x += vel * delta * scale * sin(ang_rad);
     pos_y += vel * delta * scale * cos(ang_rad);

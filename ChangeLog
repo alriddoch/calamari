@@ -1,3 +1,9 @@
+2006-02-27  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Implement controls in new logic, and delete old
+	  logic, implementing both forward and reverse turning while moving,
+	  and frame rate independant rotating.
+
 2006-02-26  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Modify key handlers because certain combinations
