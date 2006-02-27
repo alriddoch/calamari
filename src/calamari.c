@@ -56,6 +56,7 @@ static bool key_lf = false;
 static bool key_lb = false;
 static bool key_rf = false;
 static bool key_rb = false;
+static bool key_flip = false;
 
 static const float max_velocity = 3.f;
 static const float max_accel = 1.f;
@@ -521,12 +522,14 @@ void step()
 
 void update(float delta)
 {
+    static bool flipped = false;
     if (key_lf) {
+        printf("lf pressed\n");
         if (key_rf) {
+            printf("rf pressed\n");
             if (!(key_lb || key_rb)) {
+                printf("forwards\n");
                 // accelerate forwards
-            } else if (key_lb && key_rb) {
-                // flip
             }
         } else {
             if (!key_lb) {
@@ -557,6 +560,15 @@ void update(float delta)
                 }
             }
         }
+    }
+    if (key_flip) {
+        if (!flipped) {
+            angle += 180;
+            vel = -vel;
+            flipped = true;
+        }
+    } else {
+        flipped = false;
     }
     if (key_lf && key_rb && !(key_lb || key_rf)) {
         angle += 0.1;
@@ -591,7 +603,7 @@ void update(float delta)
 
     scale *= (1 + (delta * 0.1f));
 
-    printf("%f %f\n", scale, log10(scale));
+    // printf("%f %f\n", scale, log10(scale));
 }
 
 // The main program loop function. This does not return until the program
@@ -654,6 +666,9 @@ void loop()
                     if ( event.key.keysym.sym == SDLK_m ) {
                         key_rb = true;
                     }
+                    if ( event.key.keysym.sym == SDLK_SPACE ) {
+                        key_flip = true;
+                    }
                     break;
                 case SDL_KEYUP:
                     if ( event.key.keysym.sym == SDLK_d ) {
@@ -667,6 +682,9 @@ void loop()
                     }
                     if ( event.key.keysym.sym == SDLK_m ) {
                         key_rb = false;
+                    }
+                    if ( event.key.keysym.sym == SDLK_SPACE ) {
+                        key_flip = false;
                     }
                     break;
                 case SDL_MOUSEBUTTONDOWN:

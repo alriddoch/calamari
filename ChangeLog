@@ -1,5 +1,12 @@
 2006-02-26  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Modify key handlers because certain combinations
+	  cannot be detected on some keyboards. Use a single keypress to
+	  flip the camera view instead, and add the code that will handle
+	  this.
+
+2006-02-26  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Rename control flags to by synbolic of the keys
 	  function, not the currently hardcoded binding. Add stub logic
 	  for handling all the cases that can occur in the input system.
