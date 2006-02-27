@@ -526,11 +526,8 @@ void update(float delta)
     bool vel_changed = false;
 
     if (key_lf) {
-        printf("lf pressed\n");
         if (key_rf) {
-            printf("rf pressed\n");
             if (!(key_lb || key_rb)) {
-                printf("forwards\n");
                 // accelerate forwards
                 if (vel > 0) {
                     vel += delta * max_accel;

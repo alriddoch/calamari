@@ -8,7 +8,8 @@
 // #include "Vector3D.h"
 
 typedef struct quaternion {
-    float x, y, z, w;
+    float vec[3];
+    float w;
 } Quaternion;
 
 #if 0

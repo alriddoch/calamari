@@ -1,4 +1,4 @@
 bin_PROGRAMS = calamari
 
-calamari_SOURCES = \
-                 calamari.c font.h
+calamari_SOURCES = quaternion.c quaternion.h \
+                   calamari.c font.h

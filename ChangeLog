@@ -1,5 +1,12 @@
 2006-02-27  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/quaternion.c, src/quaternion.h: Implement some quaternion
+	  operations.
+
+	* src/calamari.c: Remove some debug output.
+
+2006-02-27  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Implement controls in new logic, and delete old
 	  logic, implementing both forward and reverse turning while moving,
 	  and frame rate independant rotating.
