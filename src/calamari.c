@@ -41,13 +41,20 @@ static const int step_time = 1000;
 
 // Variables that store the game state
 
-static int block_x = 4;
-static int block_y = 11;
+static int block_x = 6;
+static int block_y = 6;
+
+static bool block_tagged = false;
+
+static Quaternion block_orientation = { { 0, 0, 0 }, 1 };
+static float tag_x;
+static float tag_y;
+static float tag_z;
 
 static float scale = 0.1f;
 
 static float pos_x = 0;
-static float pos_y = 0;
+static float pos_y = -2;
 
 static float angle = 0;
 
@@ -88,6 +95,11 @@ int average_frames_per_second;
 // screen.
 GLuint textTexture;
 GLuint textBase;
+
+static inline float square(float f)
+{
+    return f * f;
+}
 
 // Initialise the graphics subsystem. This is pretty much boiler plate
 // code with very little to worry about.
@@ -314,8 +326,10 @@ void draw_grid()
 
     // Draw the user controlled block
     glPopMatrix();
-    glTranslatef(block_x, block_y, 0.f);
-    draw_unit_cube();
+    if (!block_tagged) {
+        glTranslatef(block_x, block_y, 0.f);
+        draw_unit_cube();
+    }
 }
 
 float camera_rotation = 0.0f;
@@ -325,7 +339,7 @@ void grid_origin()
     glTranslatef(0, 0, -1);
     glScalef(1.f/scale, 1.f/scale, 1.f/scale);
     // Add a little camera movement
-    glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
+    // glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
     glTranslatef(-pos_x, -pos_y, 0);
 }
 
@@ -360,16 +374,28 @@ void render_scene()
     camera_pos();
 
     glPushMatrix();
+
     GLfloat matrix[16];
     quaternion_rotmatrix(&orientation, matrix);
     glMultMatrixf(matrix);
+
     GLUquadric * q = gluNewQuadric();
     gluSphere(q, 1, 8, 8);
+
+    if (block_tagged) {
+        quaternion_rotmatrix(&block_orientation, matrix);
+        glMultMatrixf(matrix);
+        glScalef(1/scale, 1/scale, 1/scale);
+        glTranslatef(tag_x, tag_y, tag_z);
+        draw_unit_cube();
+        // printf("%f %f
+    }
+
     glPopMatrix();
 
     grid_origin();
 
-    GLfloat lightPos[] = {0.f, 0.f, 1.f, 1.f};
+    GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
 
@@ -672,6 +698,16 @@ void update(float delta)
 
     scale *= (1 + (delta * 0.1f));
 
+    if (!block_tagged && (square(pos_x) + square(pos_y)) < 1) {
+        printf("DING\n");
+        block_tagged = true;
+        block_orientation = orientation;
+        quaternion_invert(&block_orientation);
+
+        tag_x = -pos_x;
+        tag_y = -pos_y;
+        tag_z = -1;
+    }
     // printf("%f %f\n", scale, log10(scale));
 }
 

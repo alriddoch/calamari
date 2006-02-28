@@ -135,6 +135,13 @@ void quaternion_rotmatrix(const Quaternion * q, float matrix[])
     matrix[15] = 1.0f;
 }
 
+void quaternion_invert(Quaternion * q)
+{
+    q->vec[0] = -q->vec[0];
+    q->vec[1] = -q->vec[1];
+    q->vec[2] = -q->vec[2];
+}
+
 #if 0
 // The arguments to this function have been swapped over because in
 // the form provided in the example code, the result appeared to be

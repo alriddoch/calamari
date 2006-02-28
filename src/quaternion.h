@@ -15,6 +15,7 @@ typedef struct quaternion {
 void quaternion_init(Quaternion * const self);
 Quaternion quaternion_rotate(Quaternion * const self, const float axis[], float angle);
 void quaternion_rotmatrix(const Quaternion * q, float matrix[]);
+void quaternion_invert(Quaternion * q);
 
 #if 0
   public:

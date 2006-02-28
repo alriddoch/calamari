@@ -1,5 +1,12 @@
 2006-02-28  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/quaternion.h, src/quaternion.cpp: Add quaternion invert function.
+
+	* src/calamari.c: Add proof of concept code to pick up a block and
+	  attach to the calamari.
+
+2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/quaternion.h, src/quaternion.c: Refactor quaternion rotation
 	  function to return its result rather than acting on the argument.
 	  Add implementation of quaternion multiplication, and use it
