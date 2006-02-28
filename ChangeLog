@@ -1,3 +1,10 @@
+2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/quaternion.h: Add prototypes for quaternion functions.
+
+	* src/calamari.c: Add a quaternion for the calamari orientation,
+	  and add experimental code to modify it as the ball rolls.
+
 2006-02-27  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/quaternion.c, src/quaternion.h: Implement some quaternion

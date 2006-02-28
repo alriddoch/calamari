@@ -12,6 +12,9 @@ typedef struct quaternion {
     float w;
 } Quaternion;
 
+void quaternion_init(Quaternion * const self);
+void quaternion_rotate(Quaternion * const self, const float axis[], float angle);
+
 #if 0
   public:
     static const int cX = 0;    // Used to indicate which axis

@@ -10,6 +10,8 @@
 #define M_PI 3.14159265f
 #endif
 
+#include "quaternion.h"
+
 #include <SDL/SDL.h>
 
 #include <GL/gl.h>
@@ -48,6 +50,8 @@ static float pos_x = 0;
 static float pos_y = 0;
 
 static float angle = 0;
+
+static Quaternion orientation = { {0, 0, 0}, 1 };
 
 static float vel = 0;
 static float ang_vel = 0;
@@ -193,6 +197,7 @@ void setup()
     // Clear the block store
     clear();
 
+    quaternion_init(&orientation);
 }
 
 void draw_unit_cube()
@@ -632,8 +637,17 @@ void update(float delta)
     }
 
     float ang_rad = (angle / 180) * M_PI;
-    pos_x += vel * delta * scale * sin(ang_rad);
-    pos_y += vel * delta * scale * cos(ang_rad);
+    float distance = vel * delta;
+    float axis[] = { 1, 0, 0 };
+
+    pos_x += distance * scale * sin(ang_rad);
+    pos_y += distance * scale * cos(ang_rad);
+
+    // For a unit sphere, distance rolled is equal to angle rolled in
+    // radians
+    quaternion_rotate(&orientation, axis, distance);
+
+    printf("(%f,%f,%f), %f\n", orientation.vec[0], orientation.vec[1], orientation.vec[2], orientation.w);
 
     scale *= (1 + (delta * 0.1f));
 
