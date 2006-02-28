@@ -1,5 +1,15 @@
 2006-02-28  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/quaternion.h, src/quaternion.c: Refactor quaternion rotation
+	  function to return its result rather than acting on the argument.
+	  Add implementation of quaternion multiplication, and use it
+	  to do the rotation. Implement creating a rotmatrix from a quaternion.
+
+	* src/calamari.c: Add lighting. Implement rotating the calamari as
+	  it rolls using a quaternion to store its orientation.
+
+2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/quaternion.h: Add prototypes for quaternion functions.
 
 	* src/calamari.c: Add a quaternion for the calamari orientation,

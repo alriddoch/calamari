@@ -127,6 +127,15 @@ bool init_graphics()
     // Set the colour the screen will be when cleared - black
     glClearColor(0.0, 0.0, 0.0, 0.0);
 
+    GLfloat ambient_colour[] = {0.2f, 0.2f, 0.2f, 1.f};
+    GLfloat diffuse_colour[] = {1.f, 1.f, 1.00, 1.f};
+
+    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_colour);
+    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse_colour);
+
+    glEnable(GL_LIGHT1);
+    glEnable(GL_LIGHTING);
+
     // Initialise the texture used for rendering text
     glGenTextures(1, &textTexture);
     glBindTexture(GL_TEXTURE_2D, textTexture);
@@ -260,7 +269,8 @@ void draw_grid()
         0.f, grid_height, 0.f,
     };
 
-    glColor3f(0.3, 0.3, 0.3);
+    glColor3f(0.3f, 0.3f, 0.3f);
+    glNormal3f(0.f, 0.f, 1.f);
 
     // Move to the origin of the grid
     glTranslatef(-(float)grid_width/2.0f, -(float)grid_height/2.0f, 0.0f);
@@ -349,10 +359,19 @@ void render_scene()
     // Set the camera position
     camera_pos();
 
+    glPushMatrix();
+    GLfloat matrix[16];
+    quaternion_rotmatrix(&orientation, matrix);
+    glMultMatrixf(matrix);
     GLUquadric * q = gluNewQuadric();
     gluSphere(q, 1, 8, 8);
+    glPopMatrix();
 
     grid_origin();
+
+    GLfloat lightPos[] = {0.f, 0.f, 1.f, 1.f};
+    glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
+
 
     // Draw the scene
     draw_grid();
@@ -638,14 +657,16 @@ void update(float delta)
 
     float ang_rad = (angle / 180) * M_PI;
     float distance = vel * delta;
-    float axis[] = { 1, 0, 0 };
+    float axis[] = { -1, 0, 0 };
 
     pos_x += distance * scale * sin(ang_rad);
     pos_y += distance * scale * cos(ang_rad);
 
     // For a unit sphere, distance rolled is equal to angle rolled in
     // radians
-    quaternion_rotate(&orientation, axis, distance);
+    axis[0] = cos(ang_rad);
+    axis[1] = -sin(ang_rad);
+    orientation = quaternion_rotate(&orientation, axis, -distance);
 
     printf("(%f,%f,%f), %f\n", orientation.vec[0], orientation.vec[1], orientation.vec[2], orientation.w);
 

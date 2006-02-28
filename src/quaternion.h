@@ -13,7 +13,8 @@ typedef struct quaternion {
 } Quaternion;
 
 void quaternion_init(Quaternion * const self);
-void quaternion_rotate(Quaternion * const self, const float axis[], float angle);
+Quaternion quaternion_rotate(Quaternion * const self, const float axis[], float angle);
+void quaternion_rotmatrix(const Quaternion * q, float matrix[]);
 
 #if 0
   public:

@@ -5,6 +5,8 @@
 #include "quaternion.h"
 
 #include <math.h>
+#include <stdio.h>
+#include <string.h>
 
 static inline float square(float f)
 {
@@ -57,7 +59,19 @@ void quaternion_init(Quaternion * const self)
     self->w = 1;
 }
 
-void quaternion_rotate(Quaternion * const self, const float axis[], float angle)
+Quaternion quaternion_mult(const Quaternion * const lhs, const Quaternion * const rhs)
+{
+  Quaternion res;
+
+  res.w =      lhs->w * rhs->w -      lhs->vec[0] * rhs->vec[0] - lhs->vec[1] * rhs->vec[1] - lhs->vec[2] * rhs->vec[2];
+  res.vec[0] = lhs->w * rhs->vec[0] + lhs->vec[0] * rhs->w +      lhs->vec[1] * rhs->vec[2] - lhs->vec[2] * rhs->vec[1];
+  res.vec[1] = lhs->w * rhs->vec[1] + lhs->vec[1] * rhs->w +      lhs->vec[2] * rhs->vec[0] - lhs->vec[0] * rhs->vec[2];
+  res.vec[2] = lhs->w * rhs->vec[2] + lhs->vec[2] * rhs->w +      lhs->vec[0] * rhs->vec[1] - lhs->vec[1] * rhs->vec[0];
+
+  return res;
+}
+
+Quaternion quaternion_rotate(Quaternion * const self, const float axis[], float angle)
 {
   Quaternion other;
   float half_angle = angle / 2;
@@ -73,25 +87,52 @@ void quaternion_rotate(Quaternion * const self, const float axis[], float angle)
 
   // Multiply this quaternion by other to rotate it by the desired ammount
   
-  self->w = self->w * other.w + vector_dot(self->vec, other.vec);
+#if 0
+  Quaternion res;
 
-  vec1[0] = self->vec[0]; vec1[1] = self->vec[1]; vec1[2] = self->vec[2];
-  vector_mult(vec1, other.w);
-  vec2[0] = other.vec[0]; vec2[1] = other.vec[1]; vec2[2] = other.vec[2];
-  vector_mult(vec2, self->w);
-  vector_cross(self->vec, other.vec, vec3);
+  res.w =      self->w * other.w -      self->vec[0] * other.vec[0] - self->vec[1] * other.vec[1] - self->vec[2] * other.vec[2];
+  res.vec[0] = self->w * other.vec[0] + self->vec[0] * other.w +      self->vec[1] * other.vec[2] - self->vec[2] * other.vec[1];
+  res.vec[1] = self->w * other.vec[1] + self->vec[1] * other.w +      self->vec[2] * other.vec[0] - self->vec[0] * other.vec[2];
+  res.vec[2] = self->w * other.vec[2] + self->vec[2] * other.w +      self->vec[0] * other.vec[1] - self->vec[1] * other.vec[0];
 
-  self->vec[0] = vec1[0]; self->vec[1] = vec1[1]; self->vec[2] = vec1[2];
-  vector_add(self->vec, vec2);
-  vector_sub(self->vec, vec3);
+  // printf("Angle: %f\n",  angle);
+  // printf("S(%f,%f,%f), %f\n", self->vec[0], self->vec[1], self->vec[2], self->w);
+  // printf("O(%f,%f,%f), %f\n", other.vec[0], other.vec[1], other.vec[2], other.w);
+  // printf("R(%f,%f,%f), %f\n", res.vec[0], res.vec[1], res.vec[2], res.w);
 
-  // return *this;
+  return res;
+#else
+  // return quaternion_mult(self, &other);
+  return quaternion_mult(&other, self);
+#endif
 
-  // q = q * other;
 }
 
-void quaternion_rotmatrix(const Quaternion * q, const float matrix[])
+void quaternion_rotmatrix(const Quaternion * q, float matrix[])
 {
+    // First row
+    matrix[ 0] = 1.0f - 2.0f * ( q->vec[1] * q->vec[1] + q->vec[2] * q->vec[2] );
+    matrix[ 1] = 2.0f * (q->vec[0] * q->vec[1] + q->vec[2] * q->w);
+    matrix[ 2] = 2.0f * (q->vec[0] * q->vec[2] - q->vec[1] * q->w);
+    matrix[ 3] = 0.0f;
+
+    // Second row
+    matrix[ 4] = 2.0f * ( q->vec[0] * q->vec[1] - q->vec[2] * q->w );
+    matrix[ 5] = 1.0f - 2.0f * ( q->vec[0] * q->vec[0] + q->vec[2] * q->vec[2] );
+    matrix[ 6] = 2.0f * (q->vec[2] * q->vec[1] + q->vec[0] * q->w );
+    matrix[ 7] = 0.0f;
+
+    // Third row
+    matrix[ 8] = 2.0f * ( q->vec[0] * q->vec[2] + q->vec[1] * q->w );
+    matrix[ 9] = 2.0f * ( q->vec[1] * q->vec[2] - q->vec[0] * q->w );
+    matrix[10] = 1.0f - 2.0f * ( q->vec[0] * q->vec[0] + q->vec[1] * q->vec[1] );
+    matrix[11] = 0.0f;
+
+    // Fourth row
+    matrix[12] = 0;
+    matrix[13] = 0;
+    matrix[14] = 0;
+    matrix[15] = 1.0f;
 }
 
 #if 0
