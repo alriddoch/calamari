@@ -147,6 +147,7 @@ bool init_graphics()
 
     glEnable(GL_LIGHT1);
     glEnable(GL_LIGHTING);
+    glEnable(GL_NORMALIZE);
 
     // Initialise the texture used for rendering text
     glGenTextures(1, &textTexture);
@@ -711,7 +712,7 @@ void update(float delta)
 
         tag_x = -pos_x;
         tag_y = -pos_y;
-        tag_z = -1;
+        tag_z = -scale;
     }
     // printf("%f %f\n", scale, log10(scale));
 }
