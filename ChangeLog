@@ -1,5 +1,11 @@
 2006-02-28  Al Riddoch  <alriddoch@zepler.org>
 
+	* calamari.c: Detect if calamari is braking hard, and stop rotation
+	  if it is. Fix pickup radius to be dependent on size of calamari.
+	  Slow done rate of size increase.
+
+2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/quaternion.h, src/quaternion.cpp: Add quaternion invert function.
 
 	* src/calamari.c: Add proof of concept code to pick up a block and

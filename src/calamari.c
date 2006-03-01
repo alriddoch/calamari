@@ -574,6 +574,7 @@ void update(float delta)
 {
     static bool flipped = false;
     bool vel_changed = false;
+    bool braking = false;
 
     if (key_lf) {
         if (key_rf) {
@@ -583,6 +584,7 @@ void update(float delta)
                     vel += delta * max_accel;
                 } else {
                     vel += delta * max_decel;
+                    braking = true;
                 }
                 vel_changed = true;
             }
@@ -628,6 +630,7 @@ void update(float delta)
                         vel -= delta * max_accel;
                     } else {
                         vel -= delta * max_decel;
+                        braking = true;
                     }
                     vel_changed = true;
                 } else {
@@ -690,15 +693,17 @@ void update(float delta)
 
     // For a unit sphere, distance rolled is equal to angle rolled in
     // radians
-    axis[0] = cos(ang_rad);
-    axis[1] = -sin(ang_rad);
-    orientation = quaternion_rotate(&orientation, axis, -distance);
+    if (!braking) {
+        axis[0] = cos(ang_rad);
+        axis[1] = -sin(ang_rad);
+        orientation = quaternion_rotate(&orientation, axis, -distance);
+    }
 
     printf("(%f,%f,%f), %f\n", orientation.vec[0], orientation.vec[1], orientation.vec[2], orientation.w);
 
-    scale *= (1 + (delta * 0.1f));
+    scale *= (1 + (delta * 0.01f));
 
-    if (!block_tagged && (square(pos_x) + square(pos_y)) < 1) {
+    if (!block_tagged && sqrt(square(pos_x) + square(pos_y)) < scale) {
         printf("DING\n");
         block_tagged = true;
         block_orientation = orientation;
