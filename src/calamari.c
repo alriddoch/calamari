@@ -700,8 +700,6 @@ void update(float delta)
         orientation = quaternion_rotate(&orientation, axis, -distance);
     }
 
-    printf("(%f,%f,%f), %f\n", orientation.vec[0], orientation.vec[1], orientation.vec[2], orientation.w);
-
     scale *= (1 + (delta * 0.01f));
 
     if (!block_tagged && sqrt(square(pos_x) + square(pos_y)) < scale) {

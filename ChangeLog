@@ -1,5 +1,9 @@
 2006-02-28  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Remove debug output.
+
+2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Enable normalize so lighting looks right. Fix Z
 	  offset of cube when it gets picked up.
 
