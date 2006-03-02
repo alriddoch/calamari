@@ -1,5 +1,12 @@
 2006-02-28  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Add structure to store data about arbitrary blocks
+	  around the terrain. Add normals to the cubes. Draw blocks around
+	  the grid, detect if they are picked up, and then draw them attached
+	  to the calamari.
+
+2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Remove debug output.
 
 2006-02-28  Al Riddoch  <alriddoch@zepler.org>

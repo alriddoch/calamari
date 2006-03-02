@@ -39,6 +39,28 @@ static const int screen_height = 400;
 // Number of milliseconds between steps in the game model.
 static const int step_time = 1000;
 
+// Types
+
+typedef struct {
+    float x, y, z;
+    float scale;
+    int present;
+    Quaternion orientation;
+} Block;
+
+Block blocks[] = {
+                   {-4, 3, 0, 0.1, 0 },
+                   {-2, 3, 0, 0.2, 0 },
+                   { 2, 3, 0, 0.3, 0 },
+                   { 4, 3, 0, 0.4, 0 },
+                   { 2, 3, 0, 1, 0 },
+                   { 2, 3, 0, 1, 0 },
+                   { 2, 3, 0, 1, 0 },
+                   { 2, 3, 0, 1, 0 },
+                   { 2, 3, 0, 1, 0 },
+                   { 2, 3, 0, 1, 0 },
+                   { 2, 3, 0, 1,-1 } };
+
 // Variables that store the game state
 
 static int block_x = 6;
@@ -231,6 +253,7 @@ void draw_unit_cube()
         0.f, 1.f, 1.f,
     };
     glVertexPointer(3, GL_FLOAT, 0, front_vertices);
+    glNormal3f(0,0,1);
     glDrawArrays(GL_QUADS, 0, 4);
 
     static const float left_vertices[] = {
@@ -240,6 +263,7 @@ void draw_unit_cube()
         0.f, 1.f, 0.f,
     };
     glVertexPointer(3, GL_FLOAT, 0, left_vertices);
+    glNormal3f(-1,0,0);
     glDrawArrays(GL_QUADS, 0, 4);
 
     static const float right_vertices[] = {
@@ -249,6 +273,7 @@ void draw_unit_cube()
         1.f, 1.f, 1.f,
     };
     glVertexPointer(3, GL_FLOAT, 0, right_vertices);
+    glNormal3f(1,0,0);
     glDrawArrays(GL_QUADS, 0, 4);
 
     static const float top_vertices[] = {
@@ -258,6 +283,7 @@ void draw_unit_cube()
         0.f, 1.f, 0.f,
     };
     glVertexPointer(3, GL_FLOAT, 0, top_vertices);
+    glNormal3f(0,1,0);
     glDrawArrays(GL_QUADS, 0, 4);
 
     static const float bottom_vertices[] = {
@@ -267,6 +293,7 @@ void draw_unit_cube()
         0.f, 0.f, 1.f,
     };
     glVertexPointer(3, GL_FLOAT, 0, bottom_vertices);
+    glNormal3f(0,-1,0);
     glDrawArrays(GL_QUADS, 0, 4);
 }
 
@@ -392,6 +419,22 @@ void render_scene()
         // printf("%f %f
     }
 
+    Block * b;
+    for (b = blocks; b->present != -1; ++b) {
+        if (b->present != 1) {
+            continue;
+        }
+        glPushMatrix();
+        quaternion_rotmatrix(&b->orientation, matrix);
+        glMultMatrixf(matrix);
+        glScalef(1/scale, 1/scale, 1/scale);
+        glTranslatef(b->x, b->y, b->z);
+        glScalef(b->scale, b->scale, b->scale);
+        draw_unit_cube();
+        glPopMatrix();
+        
+    }
+
     glPopMatrix();
 
     grid_origin();
@@ -399,6 +442,17 @@ void render_scene()
     GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
+    for (b = blocks; b->present != -1; ++b) {
+        if (b->present != 0) {
+            continue;
+        }
+        glPushMatrix();
+        glTranslatef(b->x, b->y, 0);
+        glScalef(b->scale, b->scale, b->scale);
+        draw_unit_cube();
+        glPopMatrix();
+        
+    }
 
     // Draw the scene
     draw_grid();
@@ -701,6 +755,24 @@ void update(float delta)
     }
 
     scale *= (1 + (delta * 0.01f));
+
+    Block * b;
+    for (b = blocks; b->present != -1; ++b) {
+        if (b->present != 0) {
+            continue;
+        }
+
+        if (sqrt(square(pos_x - b->x) + square(pos_y - b->y)) >= scale) {
+            continue;
+        }
+        printf("TAGGED ONE!");
+        b->orientation = orientation;
+        quaternion_invert(&b->orientation);
+        b->x = b->x-pos_x;
+        b->y = b->x-pos_y;
+        b->y = -scale;
+        b->present = 1;
+    }
 
     if (!block_tagged && sqrt(square(pos_x) + square(pos_y)) < scale) {
         printf("DING\n");
