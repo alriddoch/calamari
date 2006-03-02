@@ -1,20 +1,26 @@
-2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+2006-03-02  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Enclose fixed tagged block rendering in a push pop
+	  to prevent it from messing up the real blocks. Fix a number of
+	  types when determining the offset for attached blocks.
+
+2006-03-02  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Add structure to store data about arbitrary blocks
 	  around the terrain. Add normals to the cubes. Draw blocks around
 	  the grid, detect if they are picked up, and then draw them attached
 	  to the calamari.
 
-2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+2006-03-02  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Remove debug output.
 
-2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+2006-03-01  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Enable normalize so lighting looks right. Fix Z
 	  offset of cube when it gets picked up.
 
-2006-02-28  Al Riddoch  <alriddoch@zepler.org>
+2006-03-01  Al Riddoch  <alriddoch@zepler.org>
 
 	* calamari.c: Detect if calamari is braking hard, and stop rotation
 	  if it is. Fix pickup radius to be dependent on size of calamari.

@@ -411,13 +411,16 @@ void render_scene()
     gluSphere(q, 1, 8, 8);
 
     if (block_tagged) {
+        glPushMatrix();
         quaternion_rotmatrix(&block_orientation, matrix);
         glMultMatrixf(matrix);
         glScalef(1/scale, 1/scale, 1/scale);
         glTranslatef(tag_x, tag_y, tag_z);
         draw_unit_cube();
         // printf("%f %f
+        glPopMatrix();
     }
+
 
     Block * b;
     for (b = blocks; b->present != -1; ++b) {
@@ -769,8 +772,8 @@ void update(float delta)
         b->orientation = orientation;
         quaternion_invert(&b->orientation);
         b->x = b->x-pos_x;
-        b->y = b->x-pos_y;
-        b->y = -scale;
+        b->y = b->y-pos_y;
+        b->z = -scale;
         b->present = 1;
     }
 
