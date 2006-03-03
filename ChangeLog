@@ -1,5 +1,12 @@
 2006-03-03  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Create a random scene full of small blocks.
+	  Move camera to improve view. Only create the sphere quadric once.
+	  Only pick up blocks which are smaller, and calculate the increase
+	  in calamari size correctly.
+
+2006-03-03  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Remove all traces of the hard coded block.
 
 2006-03-03  Al Riddoch  <alriddoch@zepler.org>

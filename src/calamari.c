@@ -22,6 +22,7 @@
 #include <math.h>
 #include <limits.h>
 #include <string.h>
+#include <stdlib.h>
 
 typedef int bool;
 #define false 0
@@ -48,6 +49,7 @@ typedef struct {
     Quaternion orientation;
 } Block;
 
+#if 0
 Block blocks[] = {
                    {-4, 3, 0, 0.1, 0 },
                    {-2, 3, 0, 0.2, 0 },
@@ -55,6 +57,8 @@ Block blocks[] = {
                    { 0, 3, 0, 0.4, 0 },
                    { 4, 3, 0, 0.5, 0 },
                    { 2, 3, 0, 1,  -1 } };
+#endif
+Block * blocks = 0;
 
 // Variables that store the game state
 
@@ -66,6 +70,7 @@ static float pos_y = -2;
 static float angle = 0;
 
 static Quaternion orientation = { {0, 0, 0}, 1 };
+GLUquadric * sphere_quadric;
 
 static float vel = 0;
 static float ang_vel = 0;
@@ -106,6 +111,16 @@ GLuint textBase;
 static inline float square(float f)
 {
     return f * f;
+}
+
+static inline float cube(float f)
+{
+    return f * f * f;
+}
+
+static inline float uniform(float min, float max)
+{
+    return ((float)rand() / RAND_MAX) * (max - min) + min;
 }
 
 // Initialise the graphics subsystem. This is pretty much boiler plate
@@ -191,6 +206,8 @@ bool init_graphics()
     }
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
+    sphere_quadric = gluNewQuadric();
+
     return true;
 }
 
@@ -227,6 +244,20 @@ void setup()
     clear();
 
     quaternion_init(&orientation);
+
+    blocks = calloc(grid_width * 2 *  grid_height * 2 + 1, sizeof(Block));
+
+    int i, j, k = 0;
+    for (i = -grid_width; i < grid_width; ++i) {
+        for (j = -grid_height; j < grid_height; ++j, ++k) {
+            blocks[k].x = i / 2.f + uniform(-0.5f, 0.5f);
+            blocks[k].y = j / 2.f + uniform(-0.5f, 0.5f);
+            blocks[k].z = 0;
+            blocks[k].scale = uniform(0.05, 0.15);
+            blocks[k].present = 0;
+        }
+    }
+    blocks[k].present = -1;
 }
 
 void draw_unit_cube()
@@ -358,9 +389,11 @@ void camera_pos()
     // Reset the camera
     glLoadIdentity();
     // Move the camera 20 units from the objects
-    glTranslatef(0.0f, 0.0f, -10.0f);
+    // and one unit above
+    glTranslatef(0.0f, -1.0f, -10.0f);
 
-    glRotatef(-70, 1, 0, 0);
+    // Set the angle so we just can't see the horizon
+    glRotatef(-65, 1, 0, 0);
     glRotatef(angle, 0, 0, 1);
 
 }
@@ -387,8 +420,7 @@ void render_scene()
     quaternion_rotmatrix(&orientation, matrix);
     glMultMatrixf(matrix);
 
-    GLUquadric * q = gluNewQuadric();
-    gluSphere(q, 1, 8, 8);
+    gluSphere(sphere_quadric, 1, 8, 8);
 
     Block * b;
     for (b = blocks; b->present != -1; ++b) {
@@ -725,7 +757,7 @@ void update(float delta)
         orientation = quaternion_rotate(&orientation, axis, -distance);
     }
 
-    scale *= (1 + (delta * 0.01f));
+    // scale *= (1 + (delta * 0.01f));
 
     Block * b;
     for (b = blocks; b->present != -1; ++b) {
@@ -738,12 +770,21 @@ void update(float delta)
                  square(scale - (b->scale / 2))) >= (scale + b->scale / 2)) {
             continue;
         }
+        if (b->scale > scale) {
+            printf("TOO BIG!");
+            // FIXME collide
+            continue;
+        }
         b->orientation = orientation;
         quaternion_invert(&b->orientation);
         b->x = b->x-pos_x;
         b->y = b->y-pos_y;
         b->z = -scale;
         b->present = 1;
+        // scale === ball_radius
+        printf("B %f\n", scale);
+        scale = powf(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
+        printf("A %f\n", scale);
     }
 
     // printf("%f %f\n", scale, log10(scale));
