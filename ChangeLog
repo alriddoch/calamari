@@ -1,4 +1,8 @@
-2006-03-02  Al Riddoch  <alriddoch@zepler.org>
+2006-03-03  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Remove all traces of the hard coded block.
+
+2006-03-03  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Remove hard coded block. Re-work collision detection
 	  to work on the real shape, rather than the previous proof-of-concept

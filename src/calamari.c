@@ -58,9 +58,6 @@ Block blocks[] = {
 
 // Variables that store the game state
 
-static int block_x = 6;
-static int block_y = 6;
-
 static float scale = 0.1f;
 
 static float pos_x = 0;
@@ -778,27 +775,12 @@ void loop()
                         program_finished = true;
                     }
                     if ( event.key.keysym.sym == SDLK_UP ) {
-                        if ((block_y < (grid_height-1)) && !properties[block_x][block_y + 1].block) {
-                            ++block_y;
-                        }
                     }
                     if ( event.key.keysym.sym == SDLK_DOWN ) {
-                        // Move block down
-                        if ((block_y > 0) && !properties[block_x][block_y - 1].block) {
-                            --block_y;
-                        }
                     }
                     if ( event.key.keysym.sym == SDLK_LEFT ) {
-                        // Move block left
-                        if ((block_x > 0) && !properties[block_x - 1][block_y].block) {
-                            --block_x;
-                        }
                     }
                     if ( event.key.keysym.sym == SDLK_RIGHT ) {
-                        // Move block right
-                        if ((block_x < (grid_width-1)) && !properties[block_x + 1][block_y].block) {
-                            ++block_x;
-                        }
                     }
                     if ( event.key.keysym.sym == SDLK_d ) {
                         key_lf = true;
