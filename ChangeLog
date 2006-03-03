@@ -1,5 +1,11 @@
 2006-03-02  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Remove hard coded block. Re-work collision detection
+	  to work on the real shape, rather than the previous proof-of-concept
+	  code.
+
+2006-03-02  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Enclose fixed tagged block rendering in a push pop
 	  to prevent it from messing up the real blocks. Fix a number of
 	  types when determining the offset for attached blocks.

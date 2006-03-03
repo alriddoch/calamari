@@ -52,26 +52,14 @@ Block blocks[] = {
                    {-4, 3, 0, 0.1, 0 },
                    {-2, 3, 0, 0.2, 0 },
                    { 2, 3, 0, 0.3, 0 },
-                   { 4, 3, 0, 0.4, 0 },
-                   { 2, 3, 0, 1, 0 },
-                   { 2, 3, 0, 1, 0 },
-                   { 2, 3, 0, 1, 0 },
-                   { 2, 3, 0, 1, 0 },
-                   { 2, 3, 0, 1, 0 },
-                   { 2, 3, 0, 1, 0 },
-                   { 2, 3, 0, 1,-1 } };
+                   { 0, 3, 0, 0.4, 0 },
+                   { 4, 3, 0, 0.5, 0 },
+                   { 2, 3, 0, 1,  -1 } };
 
 // Variables that store the game state
 
 static int block_x = 6;
 static int block_y = 6;
-
-static bool block_tagged = false;
-
-static Quaternion block_orientation = { { 0, 0, 0 }, 1 };
-static float tag_x;
-static float tag_y;
-static float tag_z;
 
 static float scale = 0.1f;
 
@@ -352,12 +340,7 @@ void draw_grid()
 
     glColor3f(1.0, 1.0, 1.0);
 
-    // Draw the user controlled block
     glPopMatrix();
-    if (!block_tagged) {
-        glTranslatef(block_x, block_y, 0.f);
-        draw_unit_cube();
-    }
 }
 
 float camera_rotation = 0.0f;
@@ -409,18 +392,6 @@ void render_scene()
 
     GLUquadric * q = gluNewQuadric();
     gluSphere(q, 1, 8, 8);
-
-    if (block_tagged) {
-        glPushMatrix();
-        quaternion_rotmatrix(&block_orientation, matrix);
-        glMultMatrixf(matrix);
-        glScalef(1/scale, 1/scale, 1/scale);
-        glTranslatef(tag_x, tag_y, tag_z);
-        draw_unit_cube();
-        // printf("%f %f
-        glPopMatrix();
-    }
-
 
     Block * b;
     for (b = blocks; b->present != -1; ++b) {
@@ -765,10 +736,11 @@ void update(float delta)
             continue;
         }
 
-        if (sqrt(square(pos_x - b->x) + square(pos_y - b->y)) >= scale) {
+        if (sqrt(square(pos_x - (b->x + b->scale / 2)) +
+                 square(pos_y - (b->y + b->scale / 2)) +
+                 square(scale - (b->scale / 2))) >= (scale + b->scale / 2)) {
             continue;
         }
-        printf("TAGGED ONE!");
         b->orientation = orientation;
         quaternion_invert(&b->orientation);
         b->x = b->x-pos_x;
@@ -777,16 +749,6 @@ void update(float delta)
         b->present = 1;
     }
 
-    if (!block_tagged && sqrt(square(pos_x) + square(pos_y)) < scale) {
-        printf("DING\n");
-        block_tagged = true;
-        block_orientation = orientation;
-        quaternion_invert(&block_orientation);
-
-        tag_x = -pos_x;
-        tag_y = -pos_y;
-        tag_z = -scale;
-    }
     // printf("%f %f\n", scale, log10(scale));
 }
 
