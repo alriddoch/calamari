@@ -1,5 +1,9 @@
 2006-03-03  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Make block store a linked list.
+
+2006-03-03  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Create a random scene full of small blocks.
 	  Move camera to improve view. Only create the sphere quadric once.
 	  Only pick up blocks which are smaller, and calculate the increase

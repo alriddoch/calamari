@@ -42,22 +42,14 @@ static const int step_time = 1000;
 
 // Types
 
-typedef struct {
+typedef struct block {
     float x, y, z;
     float scale;
     int present;
     Quaternion orientation;
+    struct block * next;
 } Block;
 
-#if 0
-Block blocks[] = {
-                   {-4, 3, 0, 0.1, 0 },
-                   {-2, 3, 0, 0.2, 0 },
-                   { 2, 3, 0, 0.3, 0 },
-                   { 0, 3, 0, 0.4, 0 },
-                   { 4, 3, 0, 0.5, 0 },
-                   { 2, 3, 0, 1,  -1 } };
-#endif
 Block * blocks = 0;
 
 // Variables that store the game state
@@ -240,24 +232,26 @@ void gl_print(const char * str)
 
 void setup()
 {
+    Block ** p = &blocks;
     // Clear the block store
     clear();
 
     quaternion_init(&orientation);
 
-    blocks = calloc(grid_width * 2 *  grid_height * 2 + 1, sizeof(Block));
-
-    int i, j, k = 0;
+    int i, j;
     for (i = -grid_width; i < grid_width; ++i) {
-        for (j = -grid_height; j < grid_height; ++j, ++k) {
-            blocks[k].x = i / 2.f + uniform(-0.5f, 0.5f);
-            blocks[k].y = j / 2.f + uniform(-0.5f, 0.5f);
-            blocks[k].z = 0;
-            blocks[k].scale = uniform(0.05, 0.15);
-            blocks[k].present = 0;
+        for (j = -grid_height; j < grid_height; ++j) {
+            Block * b = calloc(1, sizeof(Block));
+            *p = b;
+            b->x = i / 2.f + uniform(-0.5f, 0.5f);
+            b->y = j / 2.f + uniform(-0.5f, 0.5f);
+            b->z = 0;
+            b->scale = uniform(0.05, 0.15);
+            b->present = 0;
+            b->next = NULL;
+            p = &b->next;
         }
     }
-    blocks[k].present = -1;
 }
 
 void draw_unit_cube()
@@ -423,7 +417,7 @@ void render_scene()
     gluSphere(sphere_quadric, 1, 8, 8);
 
     Block * b;
-    for (b = blocks; b->present != -1; ++b) {
+    for (b = blocks; b != NULL; b = b->next) {
         if (b->present != 1) {
             continue;
         }
@@ -445,7 +439,7 @@ void render_scene()
     GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
-    for (b = blocks; b->present != -1; ++b) {
+    for (b = blocks; b != NULL; b = b->next) {
         if (b->present != 0) {
             continue;
         }
@@ -760,7 +754,7 @@ void update(float delta)
     // scale *= (1 + (delta * 0.01f));
 
     Block * b;
-    for (b = blocks; b->present != -1; ++b) {
+    for (b = blocks; b != NULL; b = b->next) {
         if (b->present != 0) {
             continue;
         }
