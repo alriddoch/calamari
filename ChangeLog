@@ -1,5 +1,9 @@
 2006-03-03  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Add back onto cube.
+
+2006-03-03  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Make block store a linked list.
 
 2006-03-03  Al Riddoch  <alriddoch@zepler.org>
