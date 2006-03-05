@@ -1,5 +1,10 @@
 2006-03-05  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamaric.: Implement a log10 distribution random number function
+	  and use it to generate blocks.
+
+2006-03-05  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Increase ambient light for better visibility.
 	  Don't scale the ball up now that attached objects work okay.
 

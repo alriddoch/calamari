@@ -10,6 +10,10 @@
 #define M_PI 3.14159265f
 #endif
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include "quaternion.h"
 
 #include <SDL/SDL.h>
@@ -23,6 +27,8 @@
 #include <limits.h>
 #include <string.h>
 #include <stdlib.h>
+
+#include <assert.h>
 
 typedef int bool;
 #define false 0
@@ -113,6 +119,18 @@ static inline float cube(float f)
 static inline float uniform(float min, float max)
 {
     return ((float)rand() / RAND_MAX) * (max - min) + min;
+}
+
+static float logarithmic(float min, float max)
+{
+    assert(min > 0.f);
+    assert(max > 0.f);
+
+    float res1 = uniform(log10(min), log10(max));
+    float res2 = exp10f(res1);
+
+    printf("%f %f %f %f %f %f\n", min, max, log10(min), log10(max), res1, res2);
+    return res2;
 }
 
 // Initialise the graphics subsystem. This is pretty much boiler plate
@@ -246,7 +264,7 @@ void setup()
             b->x = i / 2.f + uniform(-0.5f, 0.5f);
             b->y = j / 2.f + uniform(-0.5f, 0.5f);
             b->z = 0;
-            b->scale = uniform(0.05, 0.15);
+            b->scale = logarithmic(0.05, 0.5);
             b->present = 0;
             b->next = NULL;
             p = &b->next;
