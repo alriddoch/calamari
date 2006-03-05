@@ -153,7 +153,7 @@ bool init_graphics()
     // Set the colour the screen will be when cleared - black
     glClearColor(0.0, 0.0, 0.0, 0.0);
 
-    GLfloat ambient_colour[] = {0.2f, 0.2f, 0.2f, 1.f};
+    GLfloat ambient_colour[] = {0.4f, 0.4f, 0.4f, 1.f};
     GLfloat diffuse_colour[] = {1.f, 1.f, 1.00, 1.f};
 
     glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_colour);
@@ -424,7 +424,11 @@ void render_scene()
     quaternion_rotmatrix(&orientation, matrix);
     glMultMatrixf(matrix);
 
+
+    glPushMatrix();
+    glScalef(.1f/scale, .1f/scale, .1f/scale);
     gluSphere(sphere_quadric, 1, 8, 8);
+    glPopMatrix();
 
     Block * b;
     for (b = blocks; b != NULL; b = b->next) {

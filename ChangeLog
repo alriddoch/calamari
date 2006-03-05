@@ -1,4 +1,9 @@
-2006-03-03  Al Riddoch  <alriddoch@zepler.org>
+2006-03-05  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Increase ambient light for better visibility.
+	  Don't scale the ball up now that attached objects work okay.
+
+2006-03-04  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Add back onto cube.
 
