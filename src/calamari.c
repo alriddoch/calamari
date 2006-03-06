@@ -61,6 +61,7 @@ Block * blocks = 0;
 // Variables that store the game state
 
 static float scale = 0.1f;
+static int next_level = 1;
 
 static float pos_x = 0;
 static float pos_y = -2;
@@ -248,6 +249,45 @@ void gl_print(const char * str)
     glPopMatrix();
 }
 
+void level(float factor)
+{
+    Block ** p = &blocks;
+    for (; *p != 0; p = &((*p)->next));
+
+    int i, j;
+    for (i = -grid_width; i < grid_width; ++i) {
+        for (j = -grid_height; j < grid_height; ++j) {
+            Block * b = calloc(1, sizeof(Block));
+            b->x = (i / 2.f + uniform(-0.5f, 0.5f)) * factor;
+            b->y = (j / 2.f + uniform(-0.5f, 0.5f)) * factor;
+            b->z = 0;
+            b->scale = logarithmic(0.05, 0.5) * factor;
+            b->present = 0;
+            b->next = NULL;
+            if ((b->x + b->scale) > -factor / 2 && b->x < factor / 2 &&
+                (b->y + b->scale) > -factor / 2 && b->y < factor / 2) {
+                free(b);
+                continue;
+            }
+            *p = b;
+            p = &b->next;
+        }
+    }
+}
+
+void trim()
+{
+    float min_size = scale / 100.f;
+    Block * b = blocks;
+    while (b->next != 0 && b->scale < min_size) {
+        Block * current = b;
+        printf("Deleting %d\n", b->scale);
+        b = b->next;
+        free(current);
+    }
+    blocks = b;
+}
+
 void setup()
 {
     Block ** p = &blocks;
@@ -256,20 +296,8 @@ void setup()
 
     quaternion_init(&orientation);
 
-    int i, j;
-    for (i = -grid_width; i < grid_width; ++i) {
-        for (j = -grid_height; j < grid_height; ++j) {
-            Block * b = calloc(1, sizeof(Block));
-            *p = b;
-            b->x = i / 2.f + uniform(-0.5f, 0.5f);
-            b->y = j / 2.f + uniform(-0.5f, 0.5f);
-            b->z = 0;
-            b->scale = logarithmic(0.05, 0.5);
-            b->present = 0;
-            b->next = NULL;
-            p = &b->next;
-        }
-    }
+    level(1);
+    level(10);
 }
 
 void draw_unit_cube()
@@ -813,6 +841,11 @@ void update(float delta)
         printf("A %f\n", scale);
     }
 
+    if (scale > next_level) {
+        level(next_level * 100);
+        trim();
+        next_level *= 10;
+    }
     // printf("%f %f\n", scale, log10(scale));
 }
 
