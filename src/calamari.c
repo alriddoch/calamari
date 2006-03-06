@@ -51,6 +51,7 @@ static const int step_time = 1000;
 typedef struct block {
     float x, y, z;
     float scale;
+    float diffuse[4];
     int present;
     Quaternion orientation;
     struct block * next;
@@ -261,6 +262,10 @@ void level(float factor)
             b->x = (i / 2.f + uniform(-0.5f, 0.5f)) * factor;
             b->y = (j / 2.f + uniform(-0.5f, 0.5f)) * factor;
             b->z = 0;
+            b->diffuse[0] = uniform(0.f, 1.f);
+            b->diffuse[1] = uniform(0.f, 1.f);
+            b->diffuse[2] = uniform(0.f, 1.f);
+            b->diffuse[3] = 1.f;
             b->scale = logarithmic(0.05, 0.5) * factor;
             b->present = 0;
             b->next = NULL;
@@ -405,6 +410,7 @@ void draw_grid()
     glPopMatrix();
     glPushMatrix();
 
+#if 0
     // Draw blocks whereever one should be placed on the grid.
     for(i = 0; i < grid_width; ++i) {
         for(j = 0; j < grid_height; ++j) {
@@ -415,6 +421,7 @@ void draw_grid()
         }
         glTranslatef(1.0f, -grid_height, 0.0f);
     }
+#endif
 
     glColor3f(1.0, 1.0, 1.0);
 
@@ -487,6 +494,7 @@ void render_scene()
         glScalef(1/scale, 1/scale, 1/scale);
         glTranslatef(b->x, b->y, b->z);
         glScalef(b->scale, b->scale, b->scale);
+        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
         draw_unit_cube();
         glPopMatrix();
         
@@ -506,10 +514,14 @@ void render_scene()
         glPushMatrix();
         glTranslatef(b->x, b->y, 0);
         glScalef(b->scale, b->scale, b->scale);
+        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
         draw_unit_cube();
         glPopMatrix();
         
     }
+
+    static float white[] = { 1.f, 1.f, 1.f, 1.f };
+    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, white);
 
     // Draw the scene
     draw_grid();

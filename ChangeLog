@@ -1,5 +1,9 @@
 2006-03-06  Al Riddoch  <alriddoch@zepler.org>
 
+	* src/calamari.c: Add random material colours to items.
+
+2006-03-06  Al Riddoch  <alriddoch@zepler.org>
+
 	* src/calamari.c: Add new function to generate a level of objects
 	  with a given scale factor. Call it each time the calamari
 	  increases by a factor of 10 to create more stuff to roll.
