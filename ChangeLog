@@ -1,3 +1,9 @@
+2006-03-08  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Detect controls for moving left and right, and add
+	  comments on how to modify physics model to allow for it, and
+	  deflection.
+
 2006-03-06  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Add random material colours to items.

@@ -286,7 +286,7 @@ void trim()
     Block * b = blocks;
     while (b->next != 0 && b->scale < min_size) {
         Block * current = b;
-        printf("Deleting %d\n", b->scale);
+        printf("Deleting %f\n", b->scale);
         b = b->next;
         free(current);
     }
@@ -700,6 +700,13 @@ void update(float delta)
     bool vel_changed = false;
     bool braking = false;
 
+    // Velociy should be a vector, so speed in facing direction can
+    // be determined by the dot product of velocity in the camera direction
+    // and this value used to determine what constraints should be placed on
+    // changes in speed, such as whether accelerating or braking, and maximums.
+    // Once vel is a vector, similar techniques can be used to handle sideways
+    // velocity, then finall deflection can be handled.
+
     if (key_lf) {
         if (key_rf) {
             if (!(key_lb || key_rb)) {
@@ -713,7 +720,9 @@ void update(float delta)
                 vel_changed = true;
             }
         } else {
-            if (!key_lb) {
+            if (key_lb) {
+                printf("Roll left\n");
+            } else {
                 if (key_rb) {
                     // rotate right
                     angle += delta * 50;
@@ -731,7 +740,9 @@ void update(float delta)
         }
     } else {
         if (key_rf) {
-            if (!key_rb) {
+            if (key_rb) {
+                printf("Roll right\n");
+            } else {
                 if (key_lb) {
                     // rotate left
                     angle -= delta * 50;
