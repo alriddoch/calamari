@@ -1,3 +1,10 @@
+2006-03-09  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/vector.c, src/vector.h: Add some vector arithmetic functions.
+
+	* src/calamari.c: Make velocity a vector, and handle sideways
+	  drift, including it in the rotation calculation.
+
 2006-03-08  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/calamari.c: Detect controls for moving left and right, and add

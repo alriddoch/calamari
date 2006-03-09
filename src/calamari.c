@@ -14,6 +14,7 @@
 #define _GNU_SOURCE
 #endif
 
+#include "vector.h"
 #include "quaternion.h"
 
 #include <SDL/SDL.h>
@@ -72,7 +73,7 @@ static float angle = 0;
 static Quaternion orientation = { {0, 0, 0}, 1 };
 GLUquadric * sphere_quadric;
 
-static float vel = 0;
+static float velocity[2] = { 0, 0 };
 static float ang_vel = 0;
 
 static bool key_lf = false;
@@ -295,7 +296,6 @@ void trim()
 
 void setup()
 {
-    Block ** p = &blocks;
     // Clear the block store
     clear();
 
@@ -699,6 +699,17 @@ void update(float delta)
     static bool flipped = false;
     bool vel_changed = false;
     bool braking = false;
+    float ang_rad = (angle / 180) * M_PI;
+    // Direction camera is facing
+    float forwards[] = { sin(ang_rad),   cos(ang_rad) };
+    float sideways[] = { cos(ang_rad), - sin(ang_rad) };
+    // Speed in the camera direction
+    float speed = vector2_dot(velocity, forwards);
+    float drift = vector2_dot(velocity, sideways);
+
+    printf("Velocity (%f,%f), Direction (%f,%f), Speed %f, Forward %f\n",
+           velocity[0], velocity[1], forwards[0], forwards[1], speed,
+           vector2_dot(velocity, forwards));
 
     // Velociy should be a vector, so speed in facing direction can
     // be determined by the dot product of velocity in the camera direction
@@ -711,10 +722,10 @@ void update(float delta)
         if (key_rf) {
             if (!(key_lb || key_rb)) {
                 // accelerate forwards
-                if (vel > 0) {
-                    vel += delta * max_accel;
+                if (speed > 0) {
+                    speed += delta * max_accel;
                 } else {
-                    vel += delta * max_decel;
+                    speed += delta * max_decel;
                     braking = true;
                 }
                 vel_changed = true;
@@ -722,6 +733,7 @@ void update(float delta)
         } else {
             if (key_lb) {
                 printf("Roll left\n");
+                drift = -1;
             } else {
                 if (key_rb) {
                     // rotate right
@@ -729,10 +741,10 @@ void update(float delta)
                 } else {
                     // coast right
                     angle += delta * 20;
-                    if (vel > 0) {
-                        vel += delta * max_accel / 2;
+                    if (speed > 0) {
+                        speed += delta * max_accel / 2;
                     } else {
-                        vel += delta * max_decel / 2;
+                        speed += delta * max_decel / 2;
                     }
                     vel_changed = true;
                 }
@@ -742,6 +754,7 @@ void update(float delta)
         if (key_rf) {
             if (key_rb) {
                 printf("Roll right\n");
+                drift = 1;
             } else {
                 if (key_lb) {
                     // rotate left
@@ -749,10 +762,10 @@ void update(float delta)
                 } else {
                     // coast left
                     angle -= delta * 20;
-                    if (vel > 0) {
-                        vel += delta * max_accel / 2;
+                    if (speed > 0) {
+                        speed += delta * max_accel / 2;
                     } else {
-                        vel += delta * max_decel / 2;
+                        speed += delta * max_decel / 2;
                     }
                     vel_changed = true;
                 }
@@ -761,20 +774,20 @@ void update(float delta)
             if (key_lb) {
                 if (key_rb) {
                     // reverse
-                    if (vel < 0) {
-                        vel -= delta * max_accel;
+                    if (speed < 0) {
+                        speed -= delta * max_accel;
                     } else {
-                        vel -= delta * max_decel;
+                        speed -= delta * max_decel;
                         braking = true;
                     }
                     vel_changed = true;
                 } else {
                     // reverse coast left
                     angle -= delta * 20;
-                    if (vel < 0) {
-                        vel -= delta * max_accel / 2;
+                    if (speed < 0) {
+                        speed -= delta * max_accel / 2;
                     } else {
-                        vel -= delta * max_decel / 2;
+                        speed -= delta * max_decel / 2;
                     }
                     vel_changed = true;
                 }
@@ -782,10 +795,10 @@ void update(float delta)
                 if (!key_lb) {
                     // reverse coast right
                     angle += delta * 20;
-                    if (vel < 0) {
-                        vel -= delta * max_accel / 2;
+                    if (speed < 0) {
+                        speed -= delta * max_accel / 2;
                     } else {
-                        vel -= delta * max_decel / 2;
+                        speed -= delta * max_decel / 2;
                     }
                     vel_changed = true;
                 }
@@ -795,7 +808,7 @@ void update(float delta)
     if (key_flip) {
         if (!flipped) {
             angle += 180;
-            vel = -vel;
+            speed = -speed;
             vel_changed = true;
             flipped = true;
         }
@@ -806,32 +819,49 @@ void update(float delta)
     if (vel_changed) {
         // If the controls have had an effect on velocity, clamp it to
         // the valid range
-        vel = fmaxf(vel, -max_velocity);
-        vel = fminf(vel, max_velocity);
+        speed = fmaxf(speed, -max_velocity);
+        speed = fminf(speed, max_velocity);
     } else {
         // Otherwise coast gently to a stop
-        if (vel < 0.f) {
-            vel += delta;
-            vel = fminf(vel, 0.f);
+        if (speed < 0.f) {
+            speed += delta;
+            speed = fminf(speed, 0.f);
         } else {
-            vel -= delta;
-            vel = fmaxf(vel, 0.f);
+            speed -= delta;
+            speed = fmaxf(speed, 0.f);
         }
     }
+    if (drift < 0.f) {
+        drift += delta;
+        drift = fminf(drift, 0.f);
+    } else {
+        drift -= delta;
+        drift = fmaxf(drift, 0.f);
+    }
 
-    float ang_rad = (angle / 180) * M_PI;
-    float distance = vel * delta;
-    float axis[] = { -1, 0, 0 };
+    float new_ang_rad = (angle / 180) * M_PI;
 
-    pos_x += distance * scale * sin(ang_rad);
-    pos_y += distance * scale * cos(ang_rad);
+    velocity[0] = sin(new_ang_rad) * speed + cos(ang_rad) * drift;
+    velocity[1] = cos(new_ang_rad) * speed - sin(ang_rad) * drift;
+
+    // float axis[] = { -1, 0, 0 };
+
+    pos_x += velocity[0] * delta * scale;
+    pos_y += velocity[1] * delta * scale;
 
     // For a unit sphere, distance rolled is equal to angle rolled in
     // radians
     if (!braking) {
-        axis[0] = cos(ang_rad);
-        axis[1] = -sin(ang_rad);
-        orientation = quaternion_rotate(&orientation, axis, -distance);
+        float mag = hypotf(velocity[0], velocity[1]);
+        if (mag > 0.f) {
+            float axis[3];
+
+            axis[0] =   velocity[1] / mag;
+            axis[1] = - velocity[0] / mag;
+            axis[2] = 0;
+            printf("(%f,%f) %f\n", axis[0], axis[1], mag);
+            orientation = quaternion_rotate(&orientation, axis, -mag * delta);
+        }
     }
 
     // scale *= (1 + (delta * 0.01f));
