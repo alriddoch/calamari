@@ -67,13 +67,14 @@ static int next_level = 1;
 
 static float pos_x = 0;
 static float pos_y = -2;
+static float pos_z = 0;
 
 static float angle = 0;
 
 static Quaternion orientation = { {0, 0, 0}, 1 };
 GLUquadric * sphere_quadric;
 
-static float velocity[2] = { 0, 0 };
+static float velocity[3] = { 0, 0, 0 };
 static float ang_vel = 0;
 
 static bool key_lf = false;
@@ -436,7 +437,7 @@ void grid_origin()
     glScalef(1.f/scale, 1.f/scale, 1.f/scale);
     // Add a little camera movement
     // glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
-    glTranslatef(-pos_x, -pos_y, 0);
+    glTranslatef(-pos_x, -pos_y, -pos_z);
 }
 
 void camera_pos()
@@ -706,10 +707,11 @@ void update(float delta)
     // Speed in the camera direction
     float speed = vector2_dot(velocity, forwards);
     float drift = vector2_dot(velocity, sideways);
+    static float support = 0;
 
-    printf("Velocity (%f,%f), Direction (%f,%f), Speed %f, Forward %f\n",
-           velocity[0], velocity[1], forwards[0], forwards[1], speed,
-           vector2_dot(velocity, forwards));
+    // printf("Velocity (%f,%f), Direction (%f,%f), Speed %f, Forward %f\n",
+           // velocity[0], velocity[1], forwards[0], forwards[1], speed,
+           // vector2_dot(velocity, forwards));
 
     // Velociy should be a vector, so speed in facing direction can
     // be determined by the dot product of velocity in the camera direction
@@ -848,6 +850,7 @@ void update(float delta)
 
     pos_x += velocity[0] * delta * scale;
     pos_y += velocity[1] * delta * scale;
+    pos_z += velocity[2] * delta * scale;
 
     // For a unit sphere, distance rolled is equal to angle rolled in
     // radians
@@ -865,33 +868,124 @@ void update(float delta)
     }
 
     // scale *= (1 + (delta * 0.01f));
+    bool climbing = false;
+    support = 0;
 
     Block * b;
     for (b = blocks; b != NULL; b = b->next) {
+        bool collision = false;
         if (b->present != 0) {
             continue;
         }
-
+        float bx = b->x + b->scale / 2.f;
+        float by = b->y + b->scale / 2.f;
+        if (pos_x < (b->x + b->scale + scale) &&
+            pos_x > (b->x - scale) &&
+            pos_y < (b->y + b->scale + scale) &&
+            pos_y > (b->y - scale)) {
+            support = fmaxf(support, b->scale);
+            if (pos_z < b->scale) {
+                printf("%f, %f\n", pos_z, b->scale);
+                if (pos_y < (b->y + b->scale) &&
+                    pos_y > (b->y)) {
+                    collision = true;
+                    printf("COLY\n");
+                }
+                if (pos_x < (b->x + b->scale) &&
+                    pos_x > (b->x)) {
+                    collision = true;
+                    printf("COLX\n");
+                }
+            }
+        }
         if (sqrt(square(pos_x - (b->x + b->scale / 2)) +
                  square(pos_y - (b->y + b->scale / 2)) +
-                 square(scale - (b->scale / 2))) >= (scale + b->scale / 2)) {
+                 square(pos_z + scale - (b->scale / 2))) < (scale + b->scale / 2)) {
+            collision = true;
+            printf("COLS\n");
+        }
+        if (!collision) {
             continue;
         }
         if (b->scale > scale) {
-            printf("TOO BIG!");
+            // printf("TOO BIG!\n");
             // FIXME collide
+            if ((pos_z + scale / 8) >= b->scale) {
+                // on top
+            } else if (fabsf(pos_x - bx) < fabsf(pos_y - by)) {
+                // bouncing y
+                if (pos_y > by) {
+                    if (velocity[1] < 0) {
+                        printf("Bounce +x\n");
+                        velocity[1] = -velocity[1];
+                        if (velocity[1] < 0.2) {
+                            climbing = true;
+                        }
+                    }
+                } else {
+                    if (velocity[1] > 0) {
+                        printf("Bounce -x\n");
+                        velocity[1] = -velocity[1];
+                        if (velocity[1] > -0.2) {
+                            climbing = true;
+                        }
+                    }
+                }
+            } else {
+                // bouncing x
+                if (pos_x > bx) {
+                    if (velocity[0] < 0) {
+                        printf("Bounce +y\n");
+                        velocity[0] = -velocity[0];
+                        if (velocity[0] < 0.2) {
+                            climbing = true;
+                        }
+                    }
+                } else {
+                    if (velocity[0] > 0) {
+                        printf("Bounce -y\n");
+                        velocity[0] = -velocity[0];
+                        if (velocity[0] > -0.2) {
+                            climbing = true;
+                        }
+                    }
+                }
+            }
+            printf("Climbing %d\n", climbing);
             continue;
         }
         b->orientation = orientation;
         quaternion_invert(&b->orientation);
         b->x = b->x-pos_x;
         b->y = b->y-pos_y;
-        b->z = -scale;
+        b->z = -(pos_z + scale);
         b->present = 1;
         // scale === ball_radius
         printf("B %f\n", scale);
         scale = powf(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
         printf("A %f\n", scale);
+    }
+    printf("P %f %f\n", pos_z, support);
+    if (climbing) {
+        if (pos_z < support) {
+            velocity[2] = 1;
+        }
+    } else {
+        if (pos_z > support) {
+            // If we are above solid surface, fall towards it
+            velocity[2] -= 9.8 * delta;
+        } else if (velocity[2] < 0) {
+            // If we are not above, but still falling, bounce
+            velocity[2] = -0.7 * velocity[2];
+        } else {
+            // Otherwise we are below and rising, in which case we must
+            // behave under gravity, but velocity must not go negative
+            velocity[2] -= 9.8 * delta;
+            if (velocity[2] < 0.f) {
+                velocity[2] = 0;
+            }
+        }
+        printf("V %f %f\n", velocity[2], 9.8 * delta);
     }
 
     if (scale > next_level) {

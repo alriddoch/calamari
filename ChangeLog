@@ -1,3 +1,9 @@
+2006-03-16  Al Riddoch  <alriddoch@zepler.org>
+
+	* src/calamari.c: Make velocity and position three dimensional,
+	  implementing climbing up the side of a block, and bouncing
+	  after falling off.
+
 2006-03-09  Al Riddoch  <alriddoch@zepler.org>
 
 	* src/vector.c, src/vector.h: Add some vector arithmetic functions.
