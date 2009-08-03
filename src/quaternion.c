@@ -75,7 +75,6 @@ Quaternion quaternion_rotate(Quaternion * const self, const float axis[], float 
 {
   Quaternion other;
   float half_angle = angle / 2;
-  float vec1[3], vec2[3], vec3[2];
 
   // Calcalate other, a quaternion giving the rotation of angle about axis.
   other.w = cos(half_angle);
