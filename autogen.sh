@@ -24,6 +24,6 @@ echo autoconf...
 
 autoconf
 
-./configure --enable-maintainer-mode $@
+./configure $@
 
 exit 0
