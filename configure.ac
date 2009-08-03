@@ -1,6 +1,6 @@
 dnl Initialise autoconf
 
-AC_INIT([calamari],[1.0.0],[alriddoch@zepler.org])
+AC_INIT([calamari],[1.0.0],[alriddoch@googlemail.com])
 AC_CONFIG_SRCDIR([src/calamari.c])
 
 AC_CANONICAL_TARGET
@@ -9,7 +9,7 @@ dnl Initialise automake
 
 AM_INIT_AUTOMAKE
 
-dnl Test for C++ compiler
+dnl Test for C compiler
 
 AC_PROG_CC
 
@@ -23,7 +23,7 @@ dnl Test for libraries
 SDL_VERSION=1.2.0
 AM_PATH_SDL($SDL_VERSION)
 CPPFLAGS="$CPPFLAGS $SDL_CFLAGS"
-LIBS="$LIBS $SDL_LIBS -L/usr/X11R6/lib"
+LIBS="$LIBS $SDL_LIBS"
 
 AC_CHECK_LIB(SDL_image,IMG_Load)
 AC_CHECK_LIB(GL,glViewport)
