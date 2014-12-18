@@ -17,7 +17,8 @@
 #include "vector.h"
 #include "quaternion.h"
 
-#include <SDL/SDL.h>
+#include <SDL.h>
+#include <SDL_opengl.h>
 
 #include <GL/gl.h>
 #include <GL/glu.h>
@@ -139,7 +140,7 @@ static float logarithmic(float min, float max)
 
 // Initialise the graphics subsystem. This is pretty much boiler plate
 // code with very little to worry about.
-bool init_graphics()
+SDL_Window * init_graphics()
 {
     // Initialise SDL
     if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
@@ -153,15 +154,23 @@ bool init_graphics()
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 
-    SDL_Surface * screen;
+    SDL_Window * screen;
 
     // Create the window
-    screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL);
+    // screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL);
+    screen = SDL_CreateWindow("Calamari Dalasie",
+                              SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                              screen_width, screen_height,
+                              SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
     if (screen == NULL) {
         // std::cerr << "Failed to set video mode" << std::endl << std::flush;
         SDL_Quit();
         return false;
     }
+
+    SDL_GLContext * context;
+
+    context = SDL_GL_CreateContext(screen);
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
@@ -222,7 +231,7 @@ bool init_graphics()
 
     sphere_quadric = gluNewQuadric();
 
-    return true;
+    return screen;
 }
 
 // Clear the grid state.
@@ -998,7 +1007,7 @@ void update(float delta)
 
 // The main program loop function. This does not return until the program
 // has finished.
-void loop()
+void loop(SDL_Window * screen)
 {
     SDL_Event event;
     int elapsed_time = SDL_GetTicks();
@@ -1105,14 +1114,15 @@ void loop()
         render_scene();
         render_interface();
 
-        SDL_GL_SwapBuffers();
+        SDL_GL_SwapWindow(screen);
     }
 }
 
 int main()
 {
     // Initialise the graphics
-    if (!init_graphics()) {
+    SDL_Window * screen = init_graphics();
+    if (screen == NULL) {
         return 1;
     }
 
@@ -1120,7 +1130,7 @@ int main()
     setup();
 
     // Run the game
-    loop();
+    loop(screen);
     return 0;
 }
 
