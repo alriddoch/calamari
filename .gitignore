@@ -1,0 +1,16 @@
+*.o
+.deps
+Makefile
+Makefile.in
+compile
+config.*
+aclocal.m4
+autom4te.cache
+default.apspec
+configure
+depcomp
+install-sh
+libtool
+ltmain.sh
+missing
+stamp-h1
