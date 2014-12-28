@@ -21,7 +21,6 @@
 #include <SDL_opengl.h>
 
 #include <GL/gl.h>
-#include <GL/glu.h>
 
 #include "font.h"
 
@@ -67,10 +66,8 @@ static float pos_z = 0;
 static float angle = 0;
 
 static Quaternion orientation = { {0, 0, 0}, 1 };
-GLUquadric * sphere_quadric;
 
 static float velocity[3] = { 0, 0, 0 };
-static float ang_vel = 0;
 
 static bool key_lf = false;
 static bool key_lb = false;
@@ -226,8 +223,6 @@ SDL_Window * init_graphics()
         glEndList();                           // Done Building The Display List
     }
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-
-    sphere_quadric = gluNewQuadric();
 
     return screen;
 }
@@ -474,7 +469,8 @@ void render_scene()
     // Set the projection transform
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluPerspective(45, (float)screen_width/screen_height, 1.f, 100.f);
+    float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
+    glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
 
     // Set the camera position
     camera_pos();
@@ -487,8 +483,9 @@ void render_scene()
 
 
     glPushMatrix();
-    glScalef(.1f/scale, .1f/scale, .1f/scale);
-    gluSphere(sphere_quadric, 1, 8, 8);
+    glScalef(.2f/scale, .2f/scale, .2f/scale);
+    glTranslatef(-0.5f, -0.5f, -0.5f);
+    draw_unit_cube();
     glPopMatrix();
 
     Block * b;
@@ -583,6 +580,8 @@ void render_interface()
 // occured.
 void mouse_click(unsigned int x, unsigned int y)
 {
+// This code needs to be ported to fix dependency on glu
+#if 0
     int i, j;
     GLuint selectBuf[512];
     GLfloat square_vertices[] = { 0.f, 0.f, 0.f, 1.f, 0.f, 0.f,
@@ -692,6 +691,7 @@ void mouse_click(unsigned int x, unsigned int y)
     if (hit_x < grid_width && hit_y < grid_height) {
         properties[hit_x][hit_y].block = !properties[hit_x][hit_y].block;
     }
+#endif
 }
 
 // This function is called every step_time milliseconds. In many games you

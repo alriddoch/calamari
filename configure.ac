@@ -26,13 +26,7 @@ LIBS="$LIBS $SDL_LIBS"
 
 AX_CXX_COMPILE_STDCXX_11
 
-AC_CHECK_LIB(SDL_image,IMG_Load)
 AC_CHECK_LIB(GL,glViewport)
-AC_CHECK_LIB(GLU,gluPerspective)
-AC_CHECK_LIB(X11,main)
-AC_CHECK_LIB(Xi,main)
-AC_CHECK_LIB(Xmu,main)
-AC_CHECK_LIB(m,main)
 
 dnl Generate files
 AC_CONFIG_FILES([
