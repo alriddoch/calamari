@@ -1,5 +1,5 @@
 bin_PROGRAMS = calamari
 
-calamari_SOURCES = vector.c vector.h \
-                   quaternion.c quaternion.h \
-                   calamari.c font.h
+calamari_SOURCES = vector.cpp vector.h \
+                   quaternion.cpp quaternion.h \
+                   calamari.cpp font.h

@@ -25,16 +25,10 @@
 
 #include "font.h"
 
-#include <math.h>
-#include <limits.h>
-#include <string.h>
-#include <stdlib.h>
+#include <cmath>
+#include <limits>
 
 #include <assert.h>
-
-typedef int bool;
-#define false 0
-#define true 1
 
 // Constants
 
@@ -132,7 +126,7 @@ static float logarithmic(float min, float max)
     assert(max > 0.f);
 
     float res1 = uniform(log10(min), log10(max));
-    float res2 = exp10f(res1);
+    float res2 = std::pow(10.f, res1);
 
     printf("%f %f %f %f %f %f\n", min, max, log10(min), log10(max), res1, res2);
     return res2;
@@ -145,7 +139,7 @@ SDL_Window * init_graphics()
     // Initialise SDL
     if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
         // std::cerr << "Failed to initialise video" << std::endl << std::flush;
-        return false;
+        return nullptr;
     }
 
     SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
@@ -156,7 +150,7 @@ SDL_Window * init_graphics()
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-                        SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
+                        SDL_GL_CONTEXT_PROFILE_CORE);
 
     SDL_Window * screen;
 
@@ -166,13 +160,13 @@ SDL_Window * init_graphics()
                               SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
                               screen_width, screen_height,
                               SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-    if (screen == NULL) {
+    if (screen == nullptr) {
         // std::cerr << "Failed to set video mode" << std::endl << std::flush;
         SDL_Quit();
-        return false;
+        return nullptr;
     }
 
-    SDL_GLContext * context;
+    SDL_GLContext context;
 
     context = SDL_GL_CreateContext(screen);
 
@@ -206,7 +200,7 @@ SDL_Window * init_graphics()
                  texture_font_width, texture_font_height, 0,
                  texture_font_format, GL_UNSIGNED_BYTE, texture_font_pixels);
     if (glGetError() != 0) {
-        return false;
+        return nullptr;
     }
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -273,7 +267,7 @@ void level(float factor)
     int i, j;
     for (i = -grid_width; i < grid_width; ++i) {
         for (j = -grid_height; j < grid_height; ++j) {
-            Block * b = calloc(1, sizeof(Block));
+            Block * b = new Block;
             b->x = (i / 2.f + uniform(-0.5f, 0.5f)) * factor;
             b->y = (j / 2.f + uniform(-0.5f, 0.5f)) * factor;
             b->z = 0;
@@ -283,10 +277,10 @@ void level(float factor)
             b->diffuse[3] = 1.f;
             b->scale = logarithmic(0.05, 0.5) * factor;
             b->present = 0;
-            b->next = NULL;
+            b->next = nullptr;
             if ((b->x + b->scale) > -factor / 2 && b->x < factor / 2 &&
                 (b->y + b->scale) > -factor / 2 && b->y < factor / 2) {
-                free(b);
+                delete b;
                 continue;
             }
             *p = b;
@@ -303,7 +297,7 @@ void trim()
         Block * current = b;
         printf("Deleting %f\n", b->scale);
         b = b->next;
-        free(current);
+        delete current;
     }
     blocks = b;
 }
@@ -498,7 +492,7 @@ void render_scene()
     glPopMatrix();
 
     Block * b;
-    for (b = blocks; b != NULL; b = b->next) {
+    for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 1) {
             continue;
         }
@@ -521,7 +515,7 @@ void render_scene()
     GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
-    for (b = blocks; b != NULL; b = b->next) {
+    for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 0) {
             continue;
         }
@@ -666,7 +660,7 @@ void mouse_click(unsigned int x, unsigned int y)
 
     // ptr points to the beginning of the results
     GLuint * ptr = &selectBuf[0];
-    GLuint minDepth = UINT_MAX, noNames = 0;
+    GLuint minDepth = std::numeric_limits<GLuint>::max(), noNames = 0;
     GLuint * namePtr = 0;
     for (i = 0; i < hits; i++) {
         int names = *(ptr++);
@@ -715,8 +709,8 @@ void update(float delta)
     bool braking = false;
     float ang_rad = (angle / 180) * M_PI;
     // Direction camera is facing
-    float forwards[] = { sin(ang_rad),   cos(ang_rad) };
-    float sideways[] = { cos(ang_rad), - sin(ang_rad) };
+    float forwards[] = { std::sin(ang_rad),   std::cos(ang_rad) };
+    float sideways[] = { std::cos(ang_rad), - std::sin(ang_rad) };
     // Speed in the camera direction
     float speed = vector2_dot(velocity, forwards);
     float drift = vector2_dot(velocity, sideways);
@@ -885,7 +879,7 @@ void update(float delta)
     support = 0;
 
     Block * b;
-    for (b = blocks; b != NULL; b = b->next) {
+    for (b = blocks; b != nullptr; b = b->next) {
         bool collision = false;
         if (b->present != 0) {
             continue;
@@ -1126,7 +1120,7 @@ int main()
 {
     // Initialise the graphics
     SDL_Window * screen = init_graphics();
-    if (screen == NULL) {
+    if (screen == nullptr) {
         return 1;
     }
 
