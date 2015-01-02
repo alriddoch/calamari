@@ -27,6 +27,7 @@ LIBS="$LIBS $SDL_LIBS"
 AX_CXX_COMPILE_STDCXX_11
 
 AC_CHECK_LIB(GL,glViewport)
+AC_CHECK_LIB(GLEW,glewInit)
 
 dnl Generate files
 AC_CONFIG_FILES([

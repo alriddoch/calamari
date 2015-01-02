@@ -10,12 +10,10 @@
 #define M_PI 3.14159265f
 #endif
 
-#ifndef _GNU_SOURCE
-#define _GNU_SOURCE
-#endif
-
 #include "vector.h"
 #include "quaternion.h"
+
+#include <GL/glew.h>
 
 #include <SDL.h>
 #include <SDL_opengl.h>
@@ -144,7 +142,7 @@ SDL_Window * init_graphics()
     SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                         SDL_GL_CONTEXT_PROFILE_CORE);
@@ -166,6 +164,14 @@ SDL_Window * init_graphics()
     SDL_GLContext context;
 
     context = SDL_GL_CreateContext(screen);
+
+    GLenum e = glewInit();
+    if (e != GLEW_OK)
+    {
+        fprintf(stderr, "GLEW fail! %s\n", glewGetErrorString(e));
+        SDL_Quit();
+        return nullptr;
+    }
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
