@@ -100,6 +100,9 @@ int average_frames_per_second;
 GLuint textTexture;
 GLuint textBase;
 
+GLuint gProgramID = 0;
+GLint gVertexPos2DLocation = -1;
+
 static inline float square(float f)
 {
     return f * f;
@@ -127,6 +130,70 @@ static float logarithmic(float min, float max)
     return res2;
 }
 
+void printProgramLog(GLuint program)
+{
+  //Make sure name is shader
+  if(glIsProgram(program))
+  {
+    //Program log length
+    int infoLogLength = 0;
+    int maxLength = infoLogLength;
+
+    //Get info string length
+    glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+
+    //Allocate string
+    char* infoLog = new char[ maxLength ];
+
+    //Get info log
+    glGetProgramInfoLog(program, maxLength, &infoLogLength, infoLog);
+    if(infoLogLength > 0)
+    {
+      //Print Log
+      printf("%s\n", infoLog);
+    }
+
+    //Deallocate string
+    delete[] infoLog;
+  }
+  else
+  {
+    printf("Name %d is not a program\n", program);
+  }
+}
+
+void printShaderLog(GLuint shader)
+{
+  //Make sure name is shader
+  if(glIsShader(shader))
+  {
+    //Shader log length
+    int infoLogLength = 0;
+    int maxLength = infoLogLength;
+
+    //Get info string length
+    glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+
+    //Allocate string
+    char* infoLog = new char[ maxLength ];
+
+    //Get info log
+    glGetShaderInfoLog(shader, maxLength, &infoLogLength, infoLog);
+    if(infoLogLength > 0)
+    {
+      //Print Log
+      printf("%s\n", infoLog);
+    }
+
+    //Deallocate string
+    delete[] infoLog;
+  }
+  else
+  {
+    printf("Name %d is not a shader\n", shader);
+  }
+}
+
 // Initialise the graphics subsystem. This is pretty much boiler plate
 // code with very little to worry about.
 SDL_Window * init_graphics()
@@ -143,7 +210,7 @@ SDL_Window * init_graphics()
     SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
                         SDL_GL_CONTEXT_PROFILE_CORE);
 
@@ -172,6 +239,99 @@ SDL_Window * init_graphics()
         SDL_Quit();
         return nullptr;
     }
+
+
+  gProgramID = glCreateProgram();
+
+  //Create vertex shader
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+  //Get vertex source
+  const GLchar* vertexShaderSource[] =
+  {
+    "#version 120\n"
+    "void main() {"
+    "  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;"
+    "  gl_FrontColor = gl_Color;"
+    // "  gl_FrontColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);"
+    "  gl_BackColor = vec4(1.0f, 0.0f, 1.0f, 1.0f);"
+    "}"
+  };
+
+  //Set vertex source
+  glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
+
+  //Compile vertex source
+  glCompileShader(vertexShader);
+
+  //Check vertex shader for errors
+  GLint vShaderCompiled = GL_FALSE;
+  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vShaderCompiled);
+  if(vShaderCompiled != GL_TRUE)
+  {
+    printf("Unable to compile vertex shader %d!\n", vertexShader);
+    printShaderLog(vertexShader);
+    return nullptr;
+  }
+
+  //Attach vertex shader to program
+  glAttachShader(gProgramID, vertexShader);
+
+
+  //Create fragment shader
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+  //Get fragment source
+  const GLchar* fragmentShaderSource[] =
+  {
+    "#version 120\n"
+    "void main() {"
+    "  gl_FragColor = gl_Color;"
+    "}"
+  };
+
+  //Set fragment source
+  glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
+
+  //Compile fragment source
+  glCompileShader(fragmentShader);
+
+  //Check fragment shader for errors
+  GLint fShaderCompiled = GL_FALSE;
+  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fShaderCompiled);
+  if(fShaderCompiled != GL_TRUE)
+  {
+    printf("Unable to compile fragment shader %d!\n", fragmentShader);
+    printShaderLog(fragmentShader);
+    return nullptr;
+  }
+
+  //Attach fragment shader to program
+  glAttachShader(gProgramID, fragmentShader);
+
+
+  //Link program
+  glLinkProgram(gProgramID);
+
+  //Check for errors
+  GLint programSuccess = GL_TRUE;
+  glGetProgramiv(gProgramID, GL_LINK_STATUS, &programSuccess);
+  if(programSuccess != GL_TRUE)
+  {
+    printf("Error linking program %d!\n", gProgramID);
+    printProgramLog(gProgramID);
+    return nullptr;
+  }
+
+#if 0
+  //Get vertex attribute location
+  gVertexPos2DLocation = glGetAttribLocation(gProgramID, "LVertexPos2D");
+  if(gVertexPos2DLocation == -1)
+  {
+    printf("LVertexPos2D is not a valid glsl program variable!\n");
+    return nullptr;
+  }
+#endif
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
@@ -518,6 +678,7 @@ void render_scene()
     GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
+    glUseProgram(gProgramID);
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 0) {
             continue;
@@ -525,11 +686,13 @@ void render_scene()
         glPushMatrix();
         glTranslatef(b->x, b->y, 0);
         glScalef(b->scale, b->scale, b->scale);
-        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
+        glColor3fv(b->diffuse);
+        // glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
         draw_unit_cube();
         glPopMatrix();
         
     }
+    glUseProgram(GL_ZERO);
 
     static float white[] = { 1.f, 1.f, 1.f, 1.f };
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, white);
