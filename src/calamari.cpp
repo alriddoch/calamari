@@ -250,11 +250,38 @@ SDL_Window * init_graphics()
   const GLchar* vertexShaderSource[] =
   {
     "#version 120\n"
+    "varying vec3 normal;"
+    "varying vec3 vertex_to_light_vector;"
     "void main() {"
-    "  gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;"
-    "  gl_FrontColor = gl_Color;"
-    // "  gl_FrontColor = vec4(1.0f, 1.0f, 0.0f, 1.0f);"
-    "  gl_BackColor = vec4(1.0f, 0.0f, 1.0f, 1.0f);"
+    "  vec3 normal, lightDir;"
+    "  vec4 diffuse, ambient;"
+    "  float NdotL;"
+
+    "  gl_Position = ftransform();"
+
+    "  /* first transform the normal into eye space and normalize the result */"
+
+    "  normal = normalize(gl_NormalMatrix * gl_Normal);"
+
+    "  /* now normalize the light's direction. Note that according to the"
+    "  OpenGL specification, the light is stored in eye space. Also since"
+    "  we're talking about a directional light, the position field is actually"
+    "  direction */"
+    "  lightDir = normalize(vec3(gl_LightSource[1].position));"
+    "  /* compute the cos of the angle between the normal and lights direction."
+
+    "  The light is directional so the direction is constant for every vertex."
+    "  Since these two are normalized the cosine is the dot product. We also"
+    "  need to clamp the result to the [0,1] range. */"
+    "  NdotL = max(dot(normal, lightDir), 0.0);"
+    "  /* Compute the diffuse term */"
+
+    "  diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;"
+    "  ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;"
+    "  gl_FrontColor =  NdotL * diffuse + ambient;"
+    // "  normal = gl_NormalMatrix * gl_Normal;"
+    // "  vec4 vertex_in_modelview_space = gl_ModelViewMatrix * gl_Vertex;"
+    // "  vertex_to_light_vector = vec3(gl_LightSource[0].position * vertex_in_modelview_space);"
     "}"
   };
 
@@ -654,6 +681,7 @@ void render_scene()
     draw_unit_cube();
     glPopMatrix();
 
+    glUseProgram(gProgramID);
     Block * b;
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 1) {
@@ -678,7 +706,6 @@ void render_scene()
     GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
     glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
-    glUseProgram(gProgramID);
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 0) {
             continue;
@@ -686,8 +713,7 @@ void render_scene()
         glPushMatrix();
         glTranslatef(b->x, b->y, 0);
         glScalef(b->scale, b->scale, b->scale);
-        glColor3fv(b->diffuse);
-        // glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
+        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
         draw_unit_cube();
         glPopMatrix();
         
