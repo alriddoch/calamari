@@ -499,65 +499,41 @@ void setup()
 
 void draw_unit_cube()
 {
-    static const float front_vertices[] = {
+    static const float vertices[] = {
+        0.f, 0.f, 0.f,
+        1.f, 0.f, 0.f,
+        1.f, 1.f, 0.f,
+        0.f, 1.f, 0.f,
         0.f, 0.f, 1.f,
         1.f, 0.f, 1.f,
         1.f, 1.f, 1.f,
         0.f, 1.f, 1.f,
     };
-    glVertexPointer(3, GL_FLOAT, 0, front_vertices);
+    glVertexPointer(3, GL_FLOAT, 0, vertices);
+
+    static const GLuint indeces[] = { 4, 5, 7, 6 };
     glNormal3f(0,0,1);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, indeces);
 
-    static const float back_vertices[] = {
-        0.f, 0.f, 0.f,
-        1.f, 0.f, 0.f,
-        1.f, 1.f, 0.f,
-        0.f, 1.f, 0.f,
-    };
-    glVertexPointer(3, GL_FLOAT, 0, back_vertices);
+    static const GLuint back_indeces[] = { 0, 3, 1, 2 };
     glNormal3f(0,0,-1);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, back_indeces);
 
-    static const float left_vertices[] = {
-        0.f, 0.f, 0.f,
-        0.f, 0.f, 1.f,
-        0.f, 1.f, 1.f,
-        0.f, 1.f, 0.f,
-    };
-    glVertexPointer(3, GL_FLOAT, 0, left_vertices);
+    static const GLuint left_indeces[] = { 0, 4, 3, 7 };
     glNormal3f(-1,0,0);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, left_indeces);
 
-    static const float right_vertices[] = {
-        1.f, 0.f, 1.f,
-        1.f, 0.f, 0.f,
-        1.f, 1.f, 0.f,
-        1.f, 1.f, 1.f,
-    };
-    glVertexPointer(3, GL_FLOAT, 0, right_vertices);
+    static const GLuint right_indeces[] = { 1, 2, 5, 6 };
     glNormal3f(1,0,0);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, right_indeces);
 
-    static const float top_vertices[] = {
-        0.f, 1.f, 1.f,
-        1.f, 1.f, 1.f,
-        1.f, 1.f, 0.f,
-        0.f, 1.f, 0.f,
-    };
-    glVertexPointer(3, GL_FLOAT, 0, top_vertices);
+    static const GLuint top_indeces[] = { 2, 3, 6, 7 };
     glNormal3f(0,1,0);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, top_indeces);
 
-    static const float bottom_vertices[] = {
-        0.f, 0.f, 0.f,
-        1.f, 0.f, 0.f,
-        1.f, 0.f, 1.f,
-        0.f, 0.f, 1.f,
-    };
-    glVertexPointer(3, GL_FLOAT, 0, bottom_vertices);
+    static const GLuint bottom_indeces[] = { 0, 1, 4, 5 };
     glNormal3f(0,-1,0);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, bottom_indeces);
 }
 
 void draw_grid()
@@ -654,6 +630,7 @@ void render_scene()
 
     // Enable the depth test
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_CULL_FACE);
 
     // Set the projection transform
     glMatrixMode(GL_PROJECTION);
