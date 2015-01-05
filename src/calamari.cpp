@@ -376,7 +376,6 @@ SDL_Window * init_graphics()
 
     glEnable(GL_CULL_FACE);
 
-
     // Initialise the texture used for rendering text
     glGenTextures(1, &textTexture);
     glBindTexture(GL_TEXTURE_2D, textTexture);
@@ -608,10 +607,6 @@ void grid_origin()
 
 void camera_pos()
 {
-    // Set up the modelview
-    glMatrixMode(GL_MODELVIEW);
-    // Reset the camera
-    glLoadIdentity();
     // Move the camera 20 units from the objects
     // and one unit above
     glTranslatef(0.0f, -1.0f, -10.0f);
@@ -636,6 +631,10 @@ void render_scene()
     float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
     glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
 
+    // Set up the modelview
+    glMatrixMode(GL_MODELVIEW);
+    // Reset the camera
+    glLoadIdentity();
     // Set the camera position
     camera_pos();
 
