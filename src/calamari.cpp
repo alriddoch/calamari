@@ -374,9 +374,8 @@ SDL_Window * init_graphics()
     glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_colour);
     glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse_colour);
 
-    glEnable(GL_LIGHT1);
-    glEnable(GL_LIGHTING);
-    glEnable(GL_NORMALIZE);
+    glEnable(GL_CULL_FACE);
+
 
     // Initialise the texture used for rendering text
     glGenTextures(1, &textTexture);
@@ -630,7 +629,6 @@ void render_scene()
 
     // Enable the depth test
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_CULL_FACE);
 
     // Set the projection transform
     glMatrixMode(GL_PROJECTION);
@@ -647,6 +645,7 @@ void render_scene()
     quaternion_rotmatrix(&orientation, matrix);
     glMultMatrixf(matrix);
 
+    glUseProgram(gProgramID);
 
     glPushMatrix();
     glScalef(.2f/scale, .2f/scale, .2f/scale);
@@ -654,7 +653,6 @@ void render_scene()
     draw_unit_cube();
     glPopMatrix();
 
-    glUseProgram(gProgramID);
     Block * b;
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 1) {
