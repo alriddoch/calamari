@@ -100,6 +100,9 @@ int average_frames_per_second;
 GLuint textTexture;
 GLuint textBase;
 
+GLuint gVBO = 0;
+GLuint gIBO = 0;
+
 GLuint gProgramID = 0;
 GLint gVertexPos2DLocation = -1;
 
@@ -193,6 +196,8 @@ void printShaderLog(GLuint shader)
     printf("Name %d is not a shader\n", shader);
   }
 }
+
+void camera_pos();
 
 // Initialise the graphics subsystem. This is pretty much boiler plate
 // code with very little to worry about.
@@ -411,6 +416,59 @@ SDL_Window * init_graphics()
     }
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 
+    static const float vertexData[] = {
+        0.f, 0.f, 0.f,
+        1.f, 0.f, 0.f,
+        1.f, 1.f, 0.f,
+        0.f, 1.f, 0.f,
+        0.f, 0.f, 1.f,
+        1.f, 0.f, 1.f,
+        1.f, 1.f, 1.f,
+        0.f, 1.f, 1.f,
+    };
+    //Create VBO
+    glGenBuffers(1, &gVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, gVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+                 3 * 8 * sizeof(GLfloat),
+                 vertexData,
+                 GL_STATIC_DRAW);
+
+    static const GLuint indexData[] = {
+        4, 5, 7, 6,
+        0, 3, 1, 2,
+        0, 4, 3, 7,
+        1, 2, 5, 6,
+        2, 3, 6, 7,
+        0, 1, 4, 5
+    };
+    //Create IBO
+    glGenBuffers(1, &gIBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 24 * sizeof(GLuint),
+                 indexData,
+                 GL_STATIC_DRAW);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_ZERO);
+    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+
+    // Set the projection transform
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
+    glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
+
+    // Set up the modelview
+    glMatrixMode(GL_MODELVIEW);
+    // Reset the camera
+    glLoadIdentity();
+    // Set the camera position
+    camera_pos();
+
+    GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
+    glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
+
     return screen;
 }
 
@@ -495,43 +553,27 @@ void setup()
     level(10);
 }
 
+#define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes) * sizeof(GLuint))
+
 void draw_unit_cube()
 {
-    static const float vertices[] = {
-        0.f, 0.f, 0.f,
-        1.f, 0.f, 0.f,
-        1.f, 1.f, 0.f,
-        0.f, 1.f, 0.f,
-        0.f, 0.f, 1.f,
-        1.f, 0.f, 1.f,
-        1.f, 1.f, 1.f,
-        0.f, 1.f, 1.f,
-    };
-    glVertexPointer(3, GL_FLOAT, 0, vertices);
-
-    static const GLuint indeces[] = { 4, 5, 7, 6 };
     glNormal3f(0,0,1);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, indeces);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 
-    static const GLuint back_indeces[] = { 0, 3, 1, 2 };
     glNormal3f(0,0,-1);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, back_indeces);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(4));
 
-    static const GLuint left_indeces[] = { 0, 4, 3, 7 };
     glNormal3f(-1,0,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, left_indeces);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(8));
 
-    static const GLuint right_indeces[] = { 1, 2, 5, 6 };
     glNormal3f(1,0,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, right_indeces);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(12));
 
-    static const GLuint top_indeces[] = { 2, 3, 6, 7 };
     glNormal3f(0,1,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, top_indeces);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(16));
 
-    static const GLuint bottom_indeces[] = { 0, 1, 4, 5 };
     glNormal3f(0,-1,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, bottom_indeces);
+    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(20));
 }
 
 void draw_grid()
@@ -646,6 +688,10 @@ void render_scene()
 
     glUseProgram(gProgramID);
 
+    glBindBuffer(GL_ARRAY_BUFFER, gVBO);
+    glVertexPointer(3, GL_FLOAT, 0, nullptr);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
+
     glPushMatrix();
     glScalef(.2f/scale, .2f/scale, .2f/scale);
     glTranslatef(-0.5f, -0.5f, -0.5f);
@@ -673,8 +719,6 @@ void render_scene()
 
     grid_origin();
 
-    GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
-    glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
 
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 0) {
@@ -688,7 +732,9 @@ void render_scene()
         glPopMatrix();
         
     }
+
     glUseProgram(GL_ZERO);
+    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 
     static float white[] = { 1.f, 1.f, 1.f, 1.f };
     glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, white);
