@@ -616,24 +616,6 @@ void draw_grid()
 
     // Reset to the origin
     glPopMatrix();
-    glPushMatrix();
-
-#if 0
-    // Draw blocks whereever one should be placed on the grid.
-    for(i = 0; i < grid_width; ++i) {
-        for(j = 0; j < grid_height; ++j) {
-            if ((properties[i][j].block)) {
-                draw_unit_cube();
-            }
-            glTranslatef(0.0f, 1.0f, 0.0f);
-        }
-        glTranslatef(1.0f, -grid_height, 0.0f);
-    }
-#endif
-
-    glColor3f(1.0, 1.0, 1.0);
-
-    glPopMatrix();
 }
 
 float camera_rotation = 0.0f;
@@ -733,7 +715,6 @@ void render_scene()
         
     }
 
-    glUseProgram(GL_ZERO);
     glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 
     static float white[] = { 1.f, 1.f, 1.f, 1.f };
@@ -741,6 +722,8 @@ void render_scene()
 
     // Draw the scene
     draw_grid();
+
+    glUseProgram(GL_ZERO);
 }
 
 // Draw any text output and other screen oriented user interface
