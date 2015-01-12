@@ -16,9 +16,6 @@
 #include <GL/glew.h>
 
 #include <SDL.h>
-#include <SDL_opengl.h>
-
-#include <GL/gl.h>
 
 #include "font.h"
 
@@ -199,6 +196,72 @@ void printShaderLog(GLuint shader)
 
 void camera_pos();
 
+GLuint create_program(const GLchar ** vertexShaderSource,
+                      const GLchar ** fragmentShaderSource)
+{
+  GLuint programID = glCreateProgram();
+
+  //Create vertex shader
+  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+
+  //Set vertex source
+  glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
+
+  //Compile vertex source
+  glCompileShader(vertexShader);
+
+  //Check vertex shader for errors
+  GLint vShaderCompiled = GL_FALSE;
+  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vShaderCompiled);
+  if(vShaderCompiled != GL_TRUE)
+  {
+    printf("Unable to compile vertex shader %d!\n", vertexShader);
+    printShaderLog(vertexShader);
+    return GL_ZERO;
+  }
+
+  //Attach vertex shader to program
+  glAttachShader(programID, vertexShader);
+
+  //Create fragment shader
+  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+
+  //Set fragment source
+  glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
+
+  //Compile fragment source
+  glCompileShader(fragmentShader);
+
+  //Check fragment shader for errors
+  GLint fShaderCompiled = GL_FALSE;
+  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fShaderCompiled);
+  if(fShaderCompiled != GL_TRUE)
+  {
+    printf("Unable to compile fragment shader %d!\n", fragmentShader);
+    printShaderLog(fragmentShader);
+    return GL_ZERO;
+  }
+
+  //Attach fragment shader to program
+  glAttachShader(programID, fragmentShader);
+
+
+  //Link program
+  glLinkProgram(programID);
+
+  //Check for errors
+  GLint programSuccess = GL_TRUE;
+  glGetProgramiv(programID, GL_LINK_STATUS, &programSuccess);
+  if(programSuccess != GL_TRUE)
+  {
+    printf("Error linking program %d!\n", programID);
+    printProgramLog(programID);
+    return GL_ZERO;
+  }
+
+  return programID;
+}
+
 // Initialise the graphics subsystem. This is pretty much boiler plate
 // code with very little to worry about.
 SDL_Window * init_graphics()
@@ -247,11 +310,6 @@ SDL_Window * init_graphics()
 
   SDL_GL_SetSwapInterval(0);
 
-  gProgramID = glCreateProgram();
-
-  //Create vertex shader
-  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
-
   //Get vertex source
   const GLchar* vertexShaderSource[] =
   {
@@ -286,29 +344,6 @@ SDL_Window * init_graphics()
     "}"
   };
 
-  //Set vertex source
-  glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
-
-  //Compile vertex source
-  glCompileShader(vertexShader);
-
-  //Check vertex shader for errors
-  GLint vShaderCompiled = GL_FALSE;
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vShaderCompiled);
-  if(vShaderCompiled != GL_TRUE)
-  {
-    printf("Unable to compile vertex shader %d!\n", vertexShader);
-    printShaderLog(vertexShader);
-    return nullptr;
-  }
-
-  //Attach vertex shader to program
-  glAttachShader(gProgramID, vertexShader);
-
-
-  //Create fragment shader
-  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
   //Get fragment source
   const GLchar* fragmentShaderSource[] =
   {
@@ -318,39 +353,11 @@ SDL_Window * init_graphics()
     "}"
   };
 
-  //Set fragment source
-  glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
-
-  //Compile fragment source
-  glCompileShader(fragmentShader);
-
-  //Check fragment shader for errors
-  GLint fShaderCompiled = GL_FALSE;
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fShaderCompiled);
-  if(fShaderCompiled != GL_TRUE)
+  gProgramID = create_program(vertexShaderSource, fragmentShaderSource);
+  if (gProgramID == GL_ZERO)
   {
-    printf("Unable to compile fragment shader %d!\n", fragmentShader);
-    printShaderLog(fragmentShader);
     return nullptr;
   }
-
-  //Attach fragment shader to program
-  glAttachShader(gProgramID, fragmentShader);
-
-
-  //Link program
-  glLinkProgram(gProgramID);
-
-  //Check for errors
-  GLint programSuccess = GL_TRUE;
-  glGetProgramiv(gProgramID, GL_LINK_STATUS, &programSuccess);
-  if(programSuccess != GL_TRUE)
-  {
-    printf("Error linking program %d!\n", gProgramID);
-    printProgramLog(gProgramID);
-    return nullptr;
-  }
-
 #if 0
   //Get vertex attribute location
   gVertexPos2DLocation = glGetAttribLocation(gProgramID, "LVertexPos2D");
