@@ -196,27 +196,38 @@ void printShaderLog(GLuint shader)
 
 void camera_pos();
 
+GLuint create_shader(GLenum type, const GLchar ** shaderSource)
+{
+  GLuint shader = glCreateShader(type);
+
+  //Set vertex source
+  glShaderSource(shader, 1, shaderSource, NULL);
+
+  //Compile vertex source
+  glCompileShader(shader);
+
+  //Check vertex shader for errors
+  GLint shaderCompiled = GL_FALSE;
+  glGetShaderiv(shader, GL_COMPILE_STATUS, &shaderCompiled);
+  if(shaderCompiled != GL_TRUE)
+  {
+    printShaderLog(shader);
+    return GL_ZERO;
+  }
+  return shader;
+}
+
 GLuint create_program(const GLchar ** vertexShaderSource,
                       const GLchar ** fragmentShaderSource)
 {
   GLuint programID = glCreateProgram();
 
   //Create vertex shader
-  GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  GLuint vertexShader = create_shader(GL_VERTEX_SHADER, vertexShaderSource);
 
-  //Set vertex source
-  glShaderSource(vertexShader, 1, vertexShaderSource, NULL);
-
-  //Compile vertex source
-  glCompileShader(vertexShader);
-
-  //Check vertex shader for errors
-  GLint vShaderCompiled = GL_FALSE;
-  glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &vShaderCompiled);
-  if(vShaderCompiled != GL_TRUE)
+  if (vertexShader == GL_ZERO)
   {
     printf("Unable to compile vertex shader %d!\n", vertexShader);
-    printShaderLog(vertexShader);
     return GL_ZERO;
   }
 
@@ -224,21 +235,12 @@ GLuint create_program(const GLchar ** vertexShaderSource,
   glAttachShader(programID, vertexShader);
 
   //Create fragment shader
-  GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  GLuint fragmentShader = create_shader(GL_FRAGMENT_SHADER,
+                                        fragmentShaderSource);
 
-  //Set fragment source
-  glShaderSource(fragmentShader, 1, fragmentShaderSource, NULL);
-
-  //Compile fragment source
-  glCompileShader(fragmentShader);
-
-  //Check fragment shader for errors
-  GLint fShaderCompiled = GL_FALSE;
-  glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &fShaderCompiled);
-  if(fShaderCompiled != GL_TRUE)
+  if(fragmentShader == GL_ZERO)
   {
     printf("Unable to compile fragment shader %d!\n", fragmentShader);
-    printShaderLog(fragmentShader);
     return GL_ZERO;
   }
 
