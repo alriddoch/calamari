@@ -315,44 +315,48 @@ SDL_Window * init_graphics()
   //Get vertex source
   const GLchar* vertexShaderSource[] =
   {
-    "#version 120\n"
-    "varying vec3 normal;"
-    "varying vec3 vertex_to_light_vector;"
-    "void main() {"
-    "  vec3 normal, lightDir;"
-    "  vec4 diffuse, ambient;"
-    "  float NdotL;"
+    R"glsl(
+#version 120
+varying vec3 normal;
+varying vec3 vertex_to_light_vector;
+void main() {
+  vec3 normal, lightDir;
+  vec4 diffuse, ambient;
+  float NdotL;
 
-    "  /* first transform the normal into eye space and normalize the result */"
-    "  normal = normalize(gl_NormalMatrix * gl_Normal);"
+  /* first transform the normal into eye space and normalize the result */
+  normal = normalize(gl_NormalMatrix * gl_Normal);
 
-    "  /* now normalize the light's direction. Note that according to the"
-    "  OpenGL specification, the light is stored in eye space. Also since"
-    "  we're talking about a directional light, the position field is actually"
-    "  direction */"
-    "  lightDir = normalize(vec3(gl_LightSource[1].position));"
+  /* now normalize the light's direction. Note that according to the
+  OpenGL specification, the light is stored in eye space. Also since
+  we're talking about a directional light, the position field is actually
+  direction */
+  lightDir = normalize(vec3(gl_LightSource[1].position));
 
-    "  /* compute the cos of the angle between the normal and lights direction."
-    "  The light is directional so the direction is constant for every vertex."
-    "  Since these two are normalized the cosine is the dot product. We also"
-    "  need to clamp the result to the [0,1] range. */"
-    "  NdotL = max(dot(normal, lightDir), 0.0);"
+  /* compute the cos of the angle between the normal and lights direction.
+  The light is directional so the direction is constant for every vertex.
+  Since these two are normalized the cosine is the dot product. We also
+  need to clamp the result to the [0,1] range. */
+  NdotL = max(dot(normal, lightDir), 0.0);
 
-    "  /* Compute the diffuse term */"
-    "  diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;"
-    "  ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;"
-    "  gl_FrontColor =  NdotL * diffuse + ambient;"
-    "  gl_Position = ftransform();"
-    "}"
+  /* Compute the diffuse term */
+  diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;
+  ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;
+  gl_FrontColor =  NdotL * diffuse + ambient;
+  gl_Position = ftransform();
+}
+)glsl"
   };
 
   //Get fragment source
   const GLchar* fragmentShaderSource[] =
   {
-    "#version 120\n"
-    "void main() {"
-    "  gl_FragColor = gl_Color;"
-    "}"
+    R"glsl(
+#version 120
+void main() {
+  gl_FragColor = gl_Color;
+}
+)glsl"
   };
 
   gProgramID = create_program(vertexShaderSource, fragmentShaderSource);
