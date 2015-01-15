@@ -392,8 +392,7 @@ void main() {
 #version 120
 uniform sampler2D tex;
 void main() {
-  vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
-  gl_FragColor = white * texture2D(tex, gl_TexCoord[0].st).a;
+  gl_FragColor = vec4(1.0, 1.0, 1.0,  texture2D(tex, gl_TexCoord[0].st).a);
 }
 )glsl"
   };
