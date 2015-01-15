@@ -380,7 +380,6 @@ void main() {
     R"glsl(
 #version 120
 void main() {
-  gl_FrontColor = gl_Color;
   gl_TexCoord[0] = gl_MultiTexCoord0;
   gl_Position = ftransform();
 }
@@ -799,7 +798,6 @@ void render_interface()
     // Use glTranslatef to go to the screen coordinates where we want the
     // text. The origin is the bottom left by default in OpenGL.
     glTranslatef(5.f, 5.f, 0);
-    glColor3f(1.f, 1.f, 1.f);
     sprintf(buf, "FPS: %d", average_frames_per_second);
     gl_print(buf);
     glPopMatrix();
