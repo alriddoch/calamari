@@ -101,6 +101,7 @@ GLuint gVBO = 0;
 GLuint gIBO = 0;
 
 GLuint gProgramID = 0;
+GLuint gTextProgID = 0;
 GLint gVertexPos2DLocation = -1;
 
 static inline float square(float f)
@@ -373,6 +374,36 @@ void main() {
     return nullptr;
   }
 #endif
+
+  const GLchar* textVertexSource[] =
+  {
+    R"glsl(
+#version 120
+void main() {
+  gl_FrontColor = gl_Color;
+  gl_TexCoord[0] = gl_MultiTexCoord0;
+  gl_Position = ftransform();
+}
+)glsl"
+  };
+
+  const GLchar* textFragmentSource[] =
+  {
+    R"glsl(
+#version 120
+uniform sampler2D tex;
+void main() {
+  vec4 white = vec4(1.0, 1.0, 1.0, 1.0);
+  gl_FragColor = white * texture2D(tex, gl_TexCoord[0].st).a;
+}
+)glsl"
+  };
+
+  gTextProgID = create_program(textVertexSource, textFragmentSource);
+  if (gTextProgID == GL_ZERO)
+  {
+    return nullptr;
+  }
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
@@ -736,7 +767,6 @@ void render_scene()
     // Draw the scene
     draw_grid();
 
-    glUseProgram(GL_ZERO);
 }
 
 // Draw any text output and other screen oriented user interface
@@ -759,6 +789,8 @@ void render_interface()
 
     // Disable the depth test, as its not useful when rendering text
     glDisable(GL_DEPTH_TEST);
+
+    glUseProgram(gTextProgID);
 
     // Print the number of frames per second. This is essential performance
     // information when developing 3D graphics.
