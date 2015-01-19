@@ -102,7 +102,7 @@ GLuint gIBO = 0;
 
 GLuint gProgramID = 0;
 GLuint gTextProgID = 0;
-GLint gVertexPos2DLocation = -1;
+GLint gVertexPosHandle = -1;
 
 static inline float square(float f)
 {
@@ -318,6 +318,7 @@ SDL_Window * init_graphics()
   {
     R"glsl(
 #version 120
+attribute vec4 LVertexPos;
 varying vec3 normal;
 varying vec3 vertex_to_light_vector;
 void main() {
@@ -344,7 +345,7 @@ void main() {
   diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;
   ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;
   gl_FrontColor =  NdotL * diffuse + ambient;
-  gl_Position = ftransform();
+  gl_Position = gl_ModelViewProjectionMatrix * LVertexPos;
 }
 )glsl"
   };
@@ -374,6 +375,8 @@ void main() {
     return nullptr;
   }
 #endif
+  gVertexPosHandle = 0;
+  glBindAttribLocation(gProgramID, gVertexPosHandle, "LVertexPos");
 
   const GLchar* textVertexSource[] =
   {
@@ -407,7 +410,6 @@ void main() {
     glViewport(0, 0, screen_width, screen_height);
 
     // Enable vertex arrays
-    glEnableClientState(GL_VERTEX_ARRAY);
     // Texture coordinate arrays well need to be enabled _ONLY_ when using
     // texture coordinates from an array, and disabled afterwards.
     // glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -426,6 +428,7 @@ void main() {
     // Initialise the texture used for rendering text
     glGenTextures(1, &textTexture);
     glBindTexture(GL_TEXTURE_2D, textTexture);
+    glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     glTexImage2D(GL_TEXTURE_2D, 0, texture_font_internalFormat,
                  texture_font_width, texture_font_height, 0,
@@ -457,6 +460,7 @@ void main() {
         glEndList();                           // Done Building The Display List
     }
     glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+    glDisableClientState(GL_VERTEX_ARRAY);
 
     static const float vertexData[] = {
         0.f, 0.f, 0.f,
@@ -712,8 +716,12 @@ void render_scene()
 
     glUseProgram(gProgramID);
 
+    glEnableVertexAttribArray(gVertexPosHandle);
+    glDisableClientState(GL_VERTEX_ARRAY);
+
     glBindBuffer(GL_ARRAY_BUFFER, gVBO);
     glVertexPointer(3, GL_FLOAT, 0, nullptr);
+    glVertexAttribPointer(gVertexPosHandle, 3, GL_FLOAT, GL_FALSE, 0, NULL);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
 
     glPushMatrix();
@@ -757,14 +765,9 @@ void render_scene()
         
     }
 
+    glDisableVertexAttribArray(gVertexPosHandle);
     glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
-
-    static float white[] = { 1.f, 1.f, 1.f, 1.f };
-    glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, white);
-
-    // Draw the scene
-    draw_grid();
-
+    glEnableClientState(GL_VERTEX_ARRAY);
 }
 
 // Draw any text output and other screen oriented user interface
