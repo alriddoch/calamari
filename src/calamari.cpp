@@ -681,48 +681,6 @@ void draw_unit_cube()
     glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(20));
 }
 
-void draw_grid()
-{
-    int i, j;
-    float horizontal_line_vertices[] = {
-        0.f, 0.f, 0.f,
-        grid_width, 0.f, 0.f,
-    };
-    float vertical_line_vertices[] = {
-        0.f, 0.f, 0.f,
-        0.f, grid_height, 0.f,
-    };
-
-    glColor3f(0.3f, 0.3f, 0.3f);
-    glNormal3f(0.f, 0.f, 1.f);
-
-    // Move to the origin of the grid
-    glTranslatef(-(float)grid_width/2.0f, -(float)grid_height/2.0f, 0.0f);
-    // Store this position
-    glPushMatrix();
-
-    // Draw vertical lines
-    glVertexPointer(3, GL_FLOAT, 0, vertical_line_vertices);
-    for (i = 0; i <= grid_width; ++i) {
-        glDrawArrays(GL_LINES, 0, 2);
-        glTranslatef(1.0f, 0.0f, 0.0f);
-    }
-
-    // Reset to the origin
-    glPopMatrix();
-    glPushMatrix();
-
-    // Draw horizontal lines
-    glVertexPointer(3, GL_FLOAT, 0, horizontal_line_vertices);
-    for (j = 0; j <= grid_height; ++j) {
-        glDrawArrays(GL_LINES, 0, 2);
-        glTranslatef(0.0f, 1.0f, 0.0f);
-    }
-
-    // Reset to the origin
-    glPopMatrix();
-}
-
 float camera_rotation = 0.0f;
 
 void grid_origin()
@@ -778,7 +736,6 @@ void render_scene()
     glEnableVertexAttribArray(gVertexPosHandle);
 
     glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-    glVertexPointer(3, GL_FLOAT, 0, nullptr);
     glVertexAttribPointer(gVertexPosHandle, 3, GL_FLOAT, GL_FALSE, 0, NULL);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
 
