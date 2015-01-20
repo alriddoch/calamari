@@ -49,6 +49,21 @@ typedef struct block {
 
 Block * blocks = 0;
 
+class TextRenderer
+{
+  // Texture handles for the texture used to handle printing text on the
+  // screen.
+  GLuint _textTexture;
+  GLuint _textBase;
+
+ public:
+  TextRenderer() = default;
+
+  int setup();
+
+  void gl_print(const char * str);
+};
+
 // Variables that store the game state
 
 static float scale = 0.1f;
@@ -92,10 +107,7 @@ static bool program_finished = false;
 // debugging graphics performance problems.
 int average_frames_per_second;
 
-// Texture handles for the texture used to handle printing text on the
-// screen.
-GLuint textTexture;
-GLuint textBase;
+TextRenderer tr;
 
 GLuint gVBO = 0;
 GLuint gIBO = 0;
@@ -425,42 +437,10 @@ void main() {
 
     glEnable(GL_CULL_FACE);
 
-    // Initialise the texture used for rendering text
-    glGenTextures(1, &textTexture);
-    glBindTexture(GL_TEXTURE_2D, textTexture);
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-    glTexImage2D(GL_TEXTURE_2D, 0, texture_font_internalFormat,
-                 texture_font_width, texture_font_height, 0,
-                 texture_font_format, GL_UNSIGNED_BYTE, texture_font_pixels);
-    if (glGetError() != 0) {
-        return nullptr;
+    if (tr.setup() != 0)
+    {
+      return nullptr;
     }
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    textBase = glGenLists(256);
-    float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
-    glVertexPointer(2, GL_FLOAT, 0, vertices);
-    int loop;
-    for(loop=0; loop<256; loop++) {
-        float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
-        float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
-
-        float texcoords[] = { cx, 1-cy-0.0625f,
-                              cx+0.0625f, 1-cy-0.0625f,
-                              cx+0.0625f, 1-cy,
-                              cx, 1-cy };
-
-        glNewList(textBase+loop,GL_COMPILE);   // Start Building A List
-
-        glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
-        glDrawArrays(GL_QUADS, 0, 4);
-
-        glTranslated(10,0,0);                  // Move To The Right Of The Character
-        glEndList();                           // Done Building The Display List
-    }
-    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-    glDisableClientState(GL_VERTEX_ARRAY);
 
     static const float vertexData[] = {
         0.f, 0.f, 0.f,
@@ -518,7 +498,6 @@ void main() {
     return screen;
 }
 
-// Clear the grid state.
 void clear()
 {
     int i, j;
@@ -529,20 +508,62 @@ void clear()
     }
 }
 
-// Print a text string on the screen at the current position.
-void gl_print(const char * str)
+int TextRenderer::setup()
 {
-    glPushMatrix();
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glBindTexture(GL_TEXTURE_2D, textTexture);
-    glEnable(GL_TEXTURE_2D);
-    glEnable(GL_BLEND);
-    glListBase(textBase-32);
-    glCallLists(strlen(str),GL_BYTE,str);
-    glDisable(GL_BLEND);
-    glDisable(GL_TEXTURE_2D);
-    glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-    glPopMatrix();
+  // Initialise the texture used for rendering text
+  glGenTextures(1, &_textTexture);
+  glBindTexture(GL_TEXTURE_2D, _textTexture);
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  glTexImage2D(GL_TEXTURE_2D, 0, texture_font_internalFormat,
+               texture_font_width, texture_font_height, 0,
+               texture_font_format, GL_UNSIGNED_BYTE, texture_font_pixels);
+  if (glGetError() != 0) {
+    return -1;
+  }
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+  _textBase = glGenLists(256);
+  float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
+  glVertexPointer(2, GL_FLOAT, 0, vertices);
+  int loop;
+  for(loop=0; loop<256; loop++) {
+    float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
+    float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
+
+    float texcoords[] = { cx, 1-cy-0.0625f,
+                          cx+0.0625f, 1-cy-0.0625f,
+                          cx+0.0625f, 1-cy,
+                          cx, 1-cy };
+
+    glNewList(_textBase+loop,GL_COMPILE);   // Start Building A List
+
+    glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
+    glDrawArrays(GL_QUADS, 0, 4);
+
+    glTranslated(10,0,0);                  // Move To The Right Of The Character
+    glEndList();                           // Done Building The Display List
+  }
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableClientState(GL_VERTEX_ARRAY);
+  return 0;
+}
+
+// Clear the grid state.
+// Print a text string on the screen at the current position.
+void TextRenderer::gl_print(const char * str)
+{
+  glPushMatrix();
+  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, _textTexture);
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+  glListBase(_textBase-32);
+  glCallLists(strlen(str),GL_BYTE,str);
+  glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
+  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+  glPopMatrix();
 }
 
 void level(float factor)
@@ -801,7 +822,7 @@ void render_interface()
     // text. The origin is the bottom left by default in OpenGL.
     glTranslatef(5.f, 5.f, 0);
     sprintf(buf, "FPS: %d", average_frames_per_second);
-    gl_print(buf);
+    tr.gl_print(buf);
     glPopMatrix();
 
     glTranslatef(5.f, screen_height - 16 - 5, 0);
@@ -809,7 +830,7 @@ void render_interface()
     int centimetres = floor(fmod(scale, 1) * 100.f);
     int milimetres = floor(fmod(scale, .01) * 1000.f);
     sprintf(buf, "%dm %dcm %dmm", metres, centimetres, milimetres);
-    gl_print(buf);
+    tr.gl_print(buf);
 }
 
 // Handle a mouse click. Call this function with the screen coordinates where
