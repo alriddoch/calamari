@@ -13,7 +13,7 @@ dnl Test for C compiler
 
 AC_PROG_CXX
 
-CXXFLAGS="$CXXFLAGS -Wall"
+CXXFLAGS="$CXXFLAGS -Wall -fno-math-errno"
 
 AC_LANG(C++)
 
