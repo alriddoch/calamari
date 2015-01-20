@@ -1179,7 +1179,7 @@ void update(float delta)
             // FIXME collide
             if ((pos_z + scale / 8) >= b->scale) {
                 // on top
-            } else if (fabsf(pos_x - bx) < fabsf(pos_y - by)) {
+            } else if (std::fabs(pos_x - bx) < std::fabs(pos_y - by)) {
                 // bouncing y
                 if (pos_y > by) {
                     if (velocity[1] < 0) {
@@ -1229,7 +1229,7 @@ void update(float delta)
         b->present = 1;
         // scale === ball_radius
         printf("B %f\n", scale);
-        scale = powf(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
+        scale = std::pow(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
         printf("A %f\n", scale);
     }
     printf("P %f %f\n", pos_z, support);
