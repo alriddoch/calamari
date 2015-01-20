@@ -54,9 +54,9 @@ class TextRenderer
   // Texture handles for the texture used to handle printing text on the
   // screen.
   GLuint _textTexture;
-  GLuint _textBase;
 
   GLuint _programID = 0;
+  GLuint _vbo[2];
 
  public:
   TextRenderer() = default;
@@ -517,8 +517,6 @@ void main() {
   // Initialise the texture used for rendering text
   glGenTextures(1, &_textTexture);
   glBindTexture(GL_TEXTURE_2D, _textTexture);
-  glEnableClientState(GL_VERTEX_ARRAY);
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glTexImage2D(GL_TEXTURE_2D, 0, texture_font_internalFormat,
                texture_font_width, texture_font_height, 0,
                texture_font_format, GL_UNSIGNED_BYTE, texture_font_pixels);
@@ -527,9 +525,18 @@ void main() {
   }
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  _textBase = glGenLists(256);
+
+
+  glGenBuffers(2, &(_vbo[0]));
+
   float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
-  glVertexPointer(2, GL_FLOAT, 0, vertices);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
+  glBufferData(GL_ARRAY_BUFFER,
+               2 * 4 * sizeof(GLfloat),
+               vertices,
+               GL_STATIC_DRAW);
+
+  float texcoorddata[256 * 2 * 4];
   int loop;
   for(loop=0; loop<256; loop++) {
     float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
@@ -539,23 +546,29 @@ void main() {
                           cx+0.0625f, 1-cy-0.0625f,
                           cx+0.0625f, 1-cy,
                           cx, 1-cy };
-
-    glNewList(_textBase+loop,GL_COMPILE);   // Start Building A List
-
-    glTexCoordPointer(2, GL_FLOAT, 0, texcoords);
-    glDrawArrays(GL_QUADS, 0, 4);
-
-    glTranslated(10,0,0);                  // Move To The Right Of The Character
-    glEndList();                           // Done Building The Display List
+    memcpy(&(texcoorddata[loop * 2 * 4]),
+           &(texcoords[0]),
+           2 * 4 * sizeof(float));
   }
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-  glDisableClientState(GL_VERTEX_ARRAY);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
+  glBufferData(GL_ARRAY_BUFFER,
+               256 * 2 * 4 * sizeof(GLfloat),
+               texcoorddata,
+               GL_STATIC_DRAW);
   return 0;
 }
 
 void TextRenderer::set_state()
 {
   glUseProgram(_programID);
+
+  glEnableClientState(GL_VERTEX_ARRAY);
+  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
+  glVertexPointer(2, GL_FLOAT, 0, nullptr);
+
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
 
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glBindTexture(GL_TEXTURE_2D, _textTexture);
@@ -568,6 +581,9 @@ void TextRenderer::reset_state()
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+
+  glDisableClientState(GL_VERTEX_ARRAY);
+  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 }
 
 // Clear the grid state.
@@ -575,8 +591,16 @@ void TextRenderer::reset_state()
 void TextRenderer::gl_print(const char * str)
 {
   glPushMatrix();
-  glListBase(_textBase-32);
-  glCallLists(strlen(str),GL_BYTE,str);
+
+  size_t len = strlen(str);
+  for (size_t i = 0; i < len; ++i)
+  {
+    int c = str[i] - 32;
+    glTexCoordPointer(2, GL_FLOAT, 0, (char*)(c * 2 * 4 * sizeof(GLfloat)));
+    glDrawArrays(GL_QUADS, 0, 4);
+    glTranslated(10,0,0);                  // Move To The Right Of The Character
+  }
+
   glPopMatrix();
 }
 
@@ -752,7 +776,6 @@ void render_scene()
     glUseProgram(gProgramID);
 
     glEnableVertexAttribArray(gVertexPosHandle);
-    glDisableClientState(GL_VERTEX_ARRAY);
 
     glBindBuffer(GL_ARRAY_BUFFER, gVBO);
     glVertexPointer(3, GL_FLOAT, 0, nullptr);
@@ -802,7 +825,6 @@ void render_scene()
 
     glDisableVertexAttribArray(gVertexPosHandle);
     glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
-    glEnableClientState(GL_VERTEX_ARRAY);
 }
 
 // Draw any text output and other screen oriented user interface
