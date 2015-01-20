@@ -56,10 +56,15 @@ class TextRenderer
   GLuint _textTexture;
   GLuint _textBase;
 
+  GLuint _programID = 0;
+
  public:
   TextRenderer() = default;
 
   int setup();
+
+  void set_state();
+  void reset_state();
 
   void gl_print(const char * str);
 };
@@ -113,7 +118,6 @@ GLuint gVBO = 0;
 GLuint gIBO = 0;
 
 GLuint gProgramID = 0;
-GLuint gTextProgID = 0;
 GLint gVertexPosHandle = -1;
 
 static inline float square(float f)
@@ -390,34 +394,6 @@ void main() {
   gVertexPosHandle = 0;
   glBindAttribLocation(gProgramID, gVertexPosHandle, "LVertexPos");
 
-  const GLchar* textVertexSource[] =
-  {
-    R"glsl(
-#version 120
-void main() {
-  gl_TexCoord[0] = gl_MultiTexCoord0;
-  gl_Position = ftransform();
-}
-)glsl"
-  };
-
-  const GLchar* textFragmentSource[] =
-  {
-    R"glsl(
-#version 120
-uniform sampler2D tex;
-void main() {
-  gl_FragColor = vec4(1.0, 1.0, 1.0,  texture2D(tex, gl_TexCoord[0].st).a);
-}
-)glsl"
-  };
-
-  gTextProgID = create_program(textVertexSource, textFragmentSource);
-  if (gTextProgID == GL_ZERO)
-  {
-    return nullptr;
-  }
-
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
 
@@ -510,6 +486,34 @@ void clear()
 
 int TextRenderer::setup()
 {
+  const GLchar* textVertexSource[] =
+  {
+    R"glsl(
+#version 120
+void main() {
+  gl_TexCoord[0] = gl_MultiTexCoord0;
+  gl_Position = ftransform();
+}
+)glsl"
+  };
+
+  const GLchar* textFragmentSource[] =
+  {
+    R"glsl(
+#version 120
+uniform sampler2D tex;
+void main() {
+  gl_FragColor = vec4(1.0, 1.0, 1.0,  texture2D(tex, gl_TexCoord[0].st).a);
+}
+)glsl"
+  };
+
+  _programID = create_program(textVertexSource, textFragmentSource);
+  if (_programID == GL_ZERO)
+  {
+    return -1;
+  }
+
   // Initialise the texture used for rendering text
   glGenTextures(1, &_textTexture);
   glBindTexture(GL_TEXTURE_2D, _textTexture);
@@ -549,20 +553,30 @@ int TextRenderer::setup()
   return 0;
 }
 
+void TextRenderer::set_state()
+{
+  glUseProgram(_programID);
+
+  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+  glBindTexture(GL_TEXTURE_2D, _textTexture);
+  glEnable(GL_TEXTURE_2D);
+  glEnable(GL_BLEND);
+}
+
+void TextRenderer::reset_state()
+{
+  glDisable(GL_BLEND);
+  glDisable(GL_TEXTURE_2D);
+  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
+}
+
 // Clear the grid state.
 // Print a text string on the screen at the current position.
 void TextRenderer::gl_print(const char * str)
 {
   glPushMatrix();
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
-  glBindTexture(GL_TEXTURE_2D, _textTexture);
-  glEnable(GL_TEXTURE_2D);
-  glEnable(GL_BLEND);
   glListBase(_textBase-32);
   glCallLists(strlen(str),GL_BYTE,str);
-  glDisable(GL_BLEND);
-  glDisable(GL_TEXTURE_2D);
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glPopMatrix();
 }
 
@@ -812,7 +826,7 @@ void render_interface()
     // Disable the depth test, as its not useful when rendering text
     glDisable(GL_DEPTH_TEST);
 
-    glUseProgram(gTextProgID);
+    tr.set_state();
 
     // Print the number of frames per second. This is essential performance
     // information when developing 3D graphics.
@@ -831,6 +845,8 @@ void render_interface()
     int milimetres = floor(fmod(scale, .01) * 1000.f);
     sprintf(buf, "%dm %dcm %dmm", metres, centimetres, milimetres);
     tr.gl_print(buf);
+
+    tr.reset_state();
 }
 
 // Handle a mouse click. Call this function with the screen coordinates where
