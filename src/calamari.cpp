@@ -1088,30 +1088,30 @@ void update(float delta)
     if (vel_changed) {
         // If the controls have had an effect on velocity, clamp it to
         // the valid range
-        speed = fmaxf(speed, -max_velocity);
-        speed = fminf(speed, max_velocity);
+        speed = std::fmax(speed, -max_velocity);
+        speed = std::fmin(speed, max_velocity);
     } else {
         // Otherwise coast gently to a stop
         if (speed < 0.f) {
             speed += delta;
-            speed = fminf(speed, 0.f);
+            speed = std::fmin(speed, 0.f);
         } else {
             speed -= delta;
-            speed = fmaxf(speed, 0.f);
+            speed = std::fmax(speed, 0.f);
         }
     }
     if (drift < 0.f) {
         drift += delta;
-        drift = fminf(drift, 0.f);
+        drift = std::fmin(drift, 0.f);
     } else {
         drift -= delta;
-        drift = fmaxf(drift, 0.f);
+        drift = std::fmax(drift, 0.f);
     }
 
     float new_ang_rad = (angle / 180) * M_PI;
 
-    velocity[0] = sin(new_ang_rad) * speed + cos(ang_rad) * drift;
-    velocity[1] = cos(new_ang_rad) * speed - sin(ang_rad) * drift;
+    velocity[0] = std::sin(new_ang_rad) * speed + std::cos(ang_rad) * drift;
+    velocity[1] = std::cos(new_ang_rad) * speed - std::sin(ang_rad) * drift;
 
     // float axis[] = { -1, 0, 0 };
 
@@ -1122,7 +1122,7 @@ void update(float delta)
     // For a unit sphere, distance rolled is equal to angle rolled in
     // radians
     if (!braking) {
-        float mag = hypotf(velocity[0], velocity[1]);
+        float mag = std::hypot(velocity[0], velocity[1]);
         if (mag > 0.f) {
             float axis[3];
 
@@ -1150,7 +1150,7 @@ void update(float delta)
             pos_x > (b->x - scale) &&
             pos_y < (b->y + b->scale + scale) &&
             pos_y > (b->y - scale)) {
-            support = fmaxf(support, b->scale);
+            support = std::fmax(support, b->scale);
             if (pos_z < b->scale) {
                 printf("%f, %f\n", pos_z, b->scale);
                 if (pos_y < (b->y + b->scale) &&
@@ -1165,9 +1165,9 @@ void update(float delta)
                 }
             }
         }
-        if (sqrt(square(pos_x - (b->x + b->scale / 2)) +
-                 square(pos_y - (b->y + b->scale / 2)) +
-                 square(pos_z + scale - (b->scale / 2))) < (scale + b->scale / 2)) {
+        if (std::sqrt(square(pos_x - (b->x + b->scale / 2)) +
+                      square(pos_y - (b->y + b->scale / 2)) +
+                      square(pos_z + scale - (b->scale / 2))) < (scale + b->scale / 2)) {
             collision = true;
             printf("COLS\n");
         }

@@ -4,7 +4,7 @@
 
 #include "quaternion.h"
 
-#include <math.h>
+#include <cmath>
 #include <stdio.h>
 #include <string.h>
 
@@ -15,7 +15,7 @@ static inline float square(float f)
 
 static float vector_mag(const float self[])
 {
-    return sqrt(square(self[0]) + square(self[1]) + square(self[2]));
+    return std::sqrt(square(self[0]) + square(self[1]) + square(self[2]));
 }
 
 void vector_mult(float self[], float scalar)
@@ -77,10 +77,10 @@ Quaternion quaternion_rotate(Quaternion * const self, const float axis[], float 
   float half_angle = angle / 2;
 
   // Calcalate other, a quaternion giving the rotation of angle about axis.
-  other.w = cos(half_angle);
+  other.w = std::cos(half_angle);
 
   other.vec[0] = axis[0]; other.vec[1] = axis[1]; other.vec[2] = axis[2];
-  vector_mult(other.vec, sin(half_angle) / vector_mag(axis));
+  vector_mult(other.vec, std::sin(half_angle) / vector_mag(axis));
 
   // m_vec = axis * (CoordType) (sin(half_angle) / axis.mag());
 
