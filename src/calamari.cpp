@@ -20,6 +20,7 @@
 #include "font.h"
 
 #include <cmath>
+#include <iostream>
 #include <limits>
 
 #include <assert.h>
@@ -56,7 +57,10 @@ class TextRenderer
   GLuint _textTexture;
 
   GLuint _programID = 0;
-  GLuint _vbo[2];
+  GLuint _vbo[3];
+
+  GLint _vertexHandle;
+  GLint _verticesHandle;
 
  public:
   TextRenderer() = default;
@@ -143,7 +147,6 @@ static float logarithmic(float min, float max)
     float res1 = uniform(log10(min), log10(max));
     float res2 = std::pow(10.f, res1);
 
-    printf("%f %f %f %f %f %f\n", min, max, log10(min), log10(max), res1, res2);
     return res2;
 }
 
@@ -382,17 +385,8 @@ void main() {
   {
     return nullptr;
   }
-#if 0
-  //Get vertex attribute location
-  gVertexPos2DLocation = glGetAttribLocation(gProgramID, "LVertexPos2D");
-  if(gVertexPos2DLocation == -1)
-  {
-    printf("LVertexPos2D is not a valid glsl program variable!\n");
-    return nullptr;
-  }
-#endif
-  gVertexPosHandle = 0;
-  glBindAttribLocation(gProgramID, gVertexPosHandle, "LVertexPos");
+
+  gVertexPosHandle = glGetAttribLocation(gProgramID, "LVertexPos");
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
@@ -490,9 +484,14 @@ int TextRenderer::setup()
   {
     R"glsl(
 #version 120
+attribute int LVertexNum;
+uniform vec2[4] LVertices;
 void main() {
   gl_TexCoord[0] = gl_MultiTexCoord0;
-  gl_Position = ftransform();
+  gl_Position = gl_ModelViewProjectionMatrix * vec4(LVertices[LVertexNum].x,
+                                                    LVertices[LVertexNum].y,
+                                                    0,
+                                                    1);
 }
 )glsl"
   };
@@ -527,7 +526,7 @@ void main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 
-  glGenBuffers(2, &(_vbo[0]));
+  glGenBuffers(3, &(_vbo[0]));
 
   float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
@@ -535,6 +534,7 @@ void main() {
                2 * 4 * sizeof(GLfloat),
                vertices,
                GL_STATIC_DRAW);
+  glVertexPointer(2, GL_FLOAT, 0, nullptr);
 
   float texcoorddata[256 * 2 * 4];
   int loop;
@@ -555,6 +555,42 @@ void main() {
                256 * 2 * 4 * sizeof(GLfloat),
                texcoorddata,
                GL_STATIC_DRAW);
+
+  GLint coordnums[] = { 0, 1, 2, 3 };
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[2]);
+  glBufferData(GL_ARRAY_BUFFER,
+               4 * sizeof(GLint),
+               coordnums,
+               GL_STATIC_DRAW);
+
+  // Program must be current in order for glUniform to work.
+  glUseProgram(_programID);
+
+  _vertexHandle = glGetAttribLocation(_programID, "LVertexNum");
+  if (_vertexHandle == -1)
+  {
+    return -1;
+  }
+
+  if (!glIsProgram(_programID))
+  {
+    std::cout << "Not program" << std::endl;
+    return -1;
+  }
+
+  _verticesHandle = glGetUniformLocation(_programID, "LVertices");
+  if (_verticesHandle == -1)
+  {
+    std::cout << "0" << std::endl;
+    return -1;
+  }
+  else
+  {
+    std::cout << "1" << std::endl;
+    glUniform2fv(_verticesHandle, 4, vertices);
+    std::cout << "2" << std::endl;
+  }
+
   return 0;
 }
 
@@ -564,9 +600,10 @@ void TextRenderer::set_state()
 
   glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+  glEnableVertexAttribArray(_vertexHandle);
 
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
-  glVertexPointer(2, GL_FLOAT, 0, nullptr);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[2]);
+  glVertexAttribIPointer(_vertexHandle, 1, GL_INT, 0, nullptr);
 
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
 
@@ -584,6 +621,7 @@ void TextRenderer::reset_state()
 
   glDisableClientState(GL_VERTEX_ARRAY);
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+  glDisableVertexAttribArray(_vertexHandle);
 }
 
 // Clear the grid state.
@@ -1147,16 +1185,13 @@ void update(float delta)
             pos_y > (b->y - scale)) {
             support = std::fmax(support, b->scale);
             if (pos_z < b->scale) {
-                printf("%f, %f\n", pos_z, b->scale);
                 if (pos_y < (b->y + b->scale) &&
                     pos_y > (b->y)) {
                     collision = true;
-                    printf("COLY\n");
                 }
                 if (pos_x < (b->x + b->scale) &&
                     pos_x > (b->x)) {
                     collision = true;
-                    printf("COLX\n");
                 }
             }
         }
@@ -1164,7 +1199,6 @@ void update(float delta)
                       square(pos_y - (b->y + b->scale / 2)) +
                       square(pos_z + scale - (b->scale / 2))) < (scale + b->scale / 2)) {
             collision = true;
-            printf("COLS\n");
         }
         if (!collision) {
             continue;
@@ -1213,7 +1247,6 @@ void update(float delta)
                     }
                 }
             }
-            printf("Climbing %d\n", climbing);
             continue;
         }
         b->orientation = orientation;
@@ -1227,7 +1260,6 @@ void update(float delta)
         scale = std::pow(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
         printf("A %f\n", scale);
     }
-    printf("P %f %f\n", pos_z, support);
     if (climbing) {
         if (pos_z < support) {
             velocity[2] = 1;
@@ -1247,7 +1279,6 @@ void update(float delta)
                 velocity[2] = 0;
             }
         }
-        printf("V %f %f\n", velocity[2], 9.8 * delta);
     }
 
     if (scale > next_level) {
@@ -1255,7 +1286,6 @@ void update(float delta)
         trim();
         next_level *= 10;
     }
-    // printf("%f %f\n", scale, log10(scale));
 }
 
 // The main program loop function. This does not return until the program
