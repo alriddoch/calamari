@@ -528,14 +528,6 @@ void main() {
 
   glGenBuffers(3, &(_vbo[0]));
 
-  float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
-  glBufferData(GL_ARRAY_BUFFER,
-               2 * 4 * sizeof(GLfloat),
-               vertices,
-               GL_STATIC_DRAW);
-  glVertexPointer(2, GL_FLOAT, 0, nullptr);
-
   float texcoorddata[256 * 2 * 4];
   int loop;
   for(loop=0; loop<256; loop++) {
@@ -563,33 +555,23 @@ void main() {
                coordnums,
                GL_STATIC_DRAW);
 
-  // Program must be current in order for glUniform to work.
-  glUseProgram(_programID);
-
   _vertexHandle = glGetAttribLocation(_programID, "LVertexNum");
   if (_vertexHandle == -1)
   {
     return -1;
   }
 
-  if (!glIsProgram(_programID))
-  {
-    std::cout << "Not program" << std::endl;
-    return -1;
-  }
-
   _verticesHandle = glGetUniformLocation(_programID, "LVertices");
   if (_verticesHandle == -1)
   {
-    std::cout << "0" << std::endl;
     return -1;
   }
-  else
-  {
-    std::cout << "1" << std::endl;
-    glUniform2fv(_verticesHandle, 4, vertices);
-    std::cout << "2" << std::endl;
-  }
+
+  // Program must be current in order for glUniform to work.
+  glUseProgram(_programID);
+
+  float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
+  glUniform2fv(_verticesHandle, 4, vertices);
 
   return 0;
 }
@@ -598,7 +580,6 @@ void TextRenderer::set_state()
 {
   glUseProgram(_programID);
 
-  glEnableClientState(GL_VERTEX_ARRAY);
   glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glEnableVertexAttribArray(_vertexHandle);
 
@@ -619,7 +600,6 @@ void TextRenderer::reset_state()
   glDisable(GL_TEXTURE_2D);
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-  glDisableClientState(GL_VERTEX_ARRAY);
   glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableVertexAttribArray(_vertexHandle);
 }
