@@ -57,10 +57,12 @@ class TextRenderer
   GLuint _textTexture;
 
   GLuint _programID = 0;
-  GLuint _vbo[3];
+  GLuint _vbo[1];
 
   GLint _vertexHandle;
   GLint _verticesHandle;
+  GLint _characterHandle;
+  GLint _texcoordHandle;
 
  public:
   TextRenderer() = default;
@@ -336,7 +338,7 @@ SDL_Window * init_graphics()
   const GLchar* vertexShaderSource[] =
   {
     R"glsl(
-#version 120
+#version 130
 attribute vec4 LVertexPos;
 varying vec3 normal;
 varying vec3 vertex_to_light_vector;
@@ -373,7 +375,7 @@ void main() {
   const GLchar* fragmentShaderSource[] =
   {
     R"glsl(
-#version 120
+#version 130
 void main() {
   gl_FragColor = gl_Color;
 }
@@ -390,11 +392,6 @@ void main() {
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
-
-    // Enable vertex arrays
-    // Texture coordinate arrays well need to be enabled _ONLY_ when using
-    // texture coordinates from an array, and disabled afterwards.
-    // glEnableClientState(GL_TEXTURE_COORD_ARRAY);
 
     // Set the colour the screen will be when cleared - black
     glClearColor(0.0, 0.0, 0.0, 0.0);
@@ -482,12 +479,24 @@ int TextRenderer::setup()
 {
   const GLchar* textVertexSource[] =
   {
+  //float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
+  //float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
     R"glsl(
-#version 120
+#version 130
 attribute int LVertexNum;
+uniform int LCharacter;
 uniform vec2[4] LVertices;
+uniform vec2[4] LTexCoords;
 void main() {
-  gl_TexCoord[0] = gl_MultiTexCoord0;
+
+  // Texture coord reference points on the grid
+  float cx=float(LCharacter%16)/16.0f;
+  float cy=float(LCharacter/16)/16.0f;
+
+  gl_TexCoord[0] = vec4(LTexCoords[LVertexNum].s + cx,
+                        LTexCoords[LVertexNum].t - cy,
+                        0,
+                        0);
   gl_Position = gl_ModelViewProjectionMatrix * vec4(LVertices[LVertexNum].x,
                                                     LVertices[LVertexNum].y,
                                                     0,
@@ -499,7 +508,7 @@ void main() {
   const GLchar* textFragmentSource[] =
   {
     R"glsl(
-#version 120
+#version 130
 uniform sampler2D tex;
 void main() {
   gl_FragColor = vec4(1.0, 1.0, 1.0,  texture2D(tex, gl_TexCoord[0].st).a);
@@ -526,30 +535,10 @@ void main() {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
 
-  glGenBuffers(3, &(_vbo[0]));
-
-  float texcoorddata[256 * 2 * 4];
-  int loop;
-  for(loop=0; loop<256; loop++) {
-    float cx=(float)(loop%16)/16.0f;      // X Position Of Current Character
-    float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
-
-    float texcoords[] = { cx, 1-cy-0.0625f,
-                          cx+0.0625f, 1-cy-0.0625f,
-                          cx+0.0625f, 1-cy,
-                          cx, 1-cy };
-    memcpy(&(texcoorddata[loop * 2 * 4]),
-           &(texcoords[0]),
-           2 * 4 * sizeof(float));
-  }
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
-  glBufferData(GL_ARRAY_BUFFER,
-               256 * 2 * 4 * sizeof(GLfloat),
-               texcoorddata,
-               GL_STATIC_DRAW);
+  glGenBuffers(1, &(_vbo[0]));
 
   GLint coordnums[] = { 0, 1, 2, 3 };
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo[2]);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
   glBufferData(GL_ARRAY_BUFFER,
                4 * sizeof(GLint),
                coordnums,
@@ -567,12 +556,34 @@ void main() {
     return -1;
   }
 
+  _texcoordHandle = glGetUniformLocation(_programID, "LTexCoords");
+  if (_texcoordHandle == -1)
+  {
+    std::cout << "1" << std::endl;
+    return -1;
+  }
+
+  _characterHandle = glGetUniformLocation(_programID, "LCharacter");
+  if (_characterHandle == -1)
+  {
+    std::cout << "2" << std::endl;
+    return -1;
+  }
+
   // Program must be current in order for glUniform to work.
   glUseProgram(_programID);
 
   float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
   glUniform2fv(_verticesHandle, 4, vertices);
 
+  //float cx=(float)(glyph%16)/16.0f;      // X Position Of Current Character
+  //float cy=(float)(glyph/16)/16.0f;      // Y Position Of Current Character
+  //                     +cx      -cy
+  float ltexcoords[] = { 0,       1-0.0625f,
+                         0.0625f, 1-0.0625f,
+                         0.0625f, 1,
+                         0,       1 };
+  glUniform2fv(_texcoordHandle, 4, ltexcoords);
   return 0;
 }
 
@@ -580,13 +591,10 @@ void TextRenderer::set_state()
 {
   glUseProgram(_programID);
 
-  glEnableClientState(GL_TEXTURE_COORD_ARRAY);
   glEnableVertexAttribArray(_vertexHandle);
 
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo[2]);
+  glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
   glVertexAttribIPointer(_vertexHandle, 1, GL_INT, 0, nullptr);
-
-  glBindBuffer(GL_ARRAY_BUFFER, _vbo[1]);
 
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glBindTexture(GL_TEXTURE_2D, _textTexture);
@@ -598,9 +606,7 @@ void TextRenderer::reset_state()
 {
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
-  glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
 
-  glDisableClientState(GL_TEXTURE_COORD_ARRAY);
   glDisableVertexAttribArray(_vertexHandle);
 }
 
@@ -615,8 +621,9 @@ void TextRenderer::gl_print(const char * str)
   {
     int c = str[i] - 32;
     glTexCoordPointer(2, GL_FLOAT, 0, (char*)(c * 2 * 4 * sizeof(GLfloat)));
+    glUniform1i(_characterHandle, c);
     glDrawArrays(GL_QUADS, 0, 4);
-    glTranslated(10,0,0);                  // Move To The Right Of The Character
+    glTranslated(10,0,0); // Move To The Right Of The Character
   }
 
   glPopMatrix();
