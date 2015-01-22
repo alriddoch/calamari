@@ -75,6 +75,28 @@ class TextRenderer
   void gl_print(const char * str);
 };
 
+class BoxRenderer
+{
+  GLuint _VBO = 0;
+
+  GLuint _programID = 0;
+  GLint _VertexPosHandle = -1;
+  GLint _NormalHandle = -1;
+  GLint _lightPos = -1;
+  GLint _lightAmbient = -1;
+  GLint _lightDiffuse = -1;
+
+ public:
+  BoxRenderer() = default;
+
+  int setup();
+
+  void set_state();
+  void reset_state();
+
+  void draw_unit_cube();
+};
+
 // Variables that store the game state
 
 static float scale = 0.1f;
@@ -119,12 +141,7 @@ static bool program_finished = false;
 int average_frames_per_second;
 
 TextRenderer tr;
-
-GLuint gVBO = 0;
-
-GLuint gProgramID = 0;
-GLint gVertexPosHandle = -1;
-GLint gNormalHandle = -1;
+BoxRenderer br;
 
 static inline float square(float f)
 {
@@ -334,73 +351,11 @@ SDL_Window * init_graphics()
 
   SDL_GL_SetSwapInterval(0);
 
-  //Get vertex source
-  const GLchar* vertexShaderSource[] =
-  {
-    R"glsl(
-#version 130
-attribute vec4 LVertexPos;
-attribute vec3 LNormal;
-void main() {
-  vec3 normal, lightDir;
-  vec4 diffuse, ambient;
-  float NdotL;
-
-  /* first transform the normal into eye space and normalize the result */
-  normal = normalize(gl_NormalMatrix * LNormal);
-
-  /* now normalize the light's direction. Note that according to the
-     OpenGL specification, the light is stored in eye space. Also since
-     we're talking about a directional light, the position field is actually
-     direction */
-  lightDir = normalize(vec3(gl_LightSource[1].position));
-
-  /* compute the cos of the angle between the normal and lights direction.
-     The light is directional so the direction is constant for every vertex.
-     Since these two are normalized the cosine is the dot product. We also
-     need to clamp the result to the [0,1] range. */
-  NdotL = max(dot(normal, lightDir), 0.0);
-
-  /* Compute the diffuse term */
-  diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;
-  ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;
-  gl_FrontColor =  NdotL * diffuse + ambient;
-  gl_Position = gl_ModelViewProjectionMatrix * LVertexPos;
-}
-)glsl"
-  };
-
-  //Get fragment source
-  const GLchar* fragmentShaderSource[] =
-  {
-    R"glsl(
-#version 130
-void main() {
-  gl_FragColor = gl_Color;
-}
-)glsl"
-  };
-
-  gProgramID = create_program(vertexShaderSource, fragmentShaderSource);
-  if (gProgramID == GL_ZERO)
-  {
-    return nullptr;
-  }
-
-  gVertexPosHandle = glGetAttribLocation(gProgramID, "LVertexPos");
-  gNormalHandle = glGetAttribLocation(gProgramID, "LNormal");
-
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
 
     // Set the colour the screen will be when cleared - black
     glClearColor(0.0, 0.0, 0.0, 0.0);
-
-    GLfloat ambient_colour[] = {0.4f, 0.4f, 0.4f, 1.f};
-    GLfloat diffuse_colour[] = {1.f, 1.f, 1.00, 1.f};
-
-    glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_colour);
-    glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse_colour);
 
     glEnable(GL_CULL_FACE);
 
@@ -409,66 +364,10 @@ void main() {
       return nullptr;
     }
 
-    static const float vertexData[] = {
-      0.f, 0.f, 1.f,
-      1.f, 0.f, 1.f,
-      0.f, 1.f, 1.f,
-      1.f, 1.f, 1.f,
-      0.f, 0.f, 0.f,
-      0.f, 1.f, 0.f,
-      1.f, 0.f, 0.f,
-      1.f, 1.f, 0.f,
-      0.f, 0.f, 0.f,
-      0.f, 0.f, 1.f,
-      0.f, 1.f, 0.f,
-      0.f, 1.f, 1.f,
-      1.f, 0.f, 0.f,
-      1.f, 1.f, 0.f,
-      1.f, 0.f, 1.f,
-      1.f, 1.f, 1.f,
-      1.f, 1.f, 0.f,
-      0.f, 1.f, 0.f,
-      1.f, 1.f, 1.f,
-      0.f, 1.f, 1.f,
-      0.f, 0.f, 0.f,
-      1.f, 0.f, 0.f,
-      0.f, 0.f, 1.f,
-      1.f, 0.f, 1.f,
-      // normals
-      0.f, 0.f, 1.f,
-      0.f, 0.f, 1.f,
-      0.f, 0.f, 1.f,
-      0.f, 0.f, 1.f,
-      0.f, 0.f, -1.f,
-      0.f, 0.f, -1.f,
-      0.f, 0.f, -1.f,
-      0.f, 0.f, -1.f,
-      -1.f, 0.f, 0.f,
-      -1.f, 0.f, 0.f,
-      -1.f, 0.f, 0.f,
-      -1.f, 0.f, 0.f,
-      1.f, 0.f, 0.f,
-      1.f, 0.f, 0.f,
-      1.f, 0.f, 0.f,
-      1.f, 0.f, 0.f,
-      0.f, 1.f, 0.f,
-      0.f, 1.f, 0.f,
-      0.f, 1.f, 0.f,
-      0.f, 1.f, 0.f,
-      0.f, -1.f, 0.f,
-      0.f, -1.f, 0.f,
-      0.f, -1.f, 0.f,
-      0.f, -1.f, 0.f,
-    };
-    //Create VBO
-    glGenBuffers(1, &gVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-    glBufferData(GL_ARRAY_BUFFER,
-                 3 * 48 * sizeof(GLfloat),
-                 vertexData,
-                 GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+    if (br.setup() != 0)
+    {
+      return nullptr;
+    }
 
     // Set the projection transform
     glMatrixMode(GL_PROJECTION);
@@ -652,6 +551,162 @@ void TextRenderer::gl_print(const char * str)
   glPopMatrix();
 }
 
+int BoxRenderer::setup()
+{
+  //Get vertex source
+  const GLchar* vertexShaderSource[] =
+  {
+    R"glsl(
+#version 130
+attribute vec4 LVertexPos;
+attribute vec3 LNormal;
+uniform vec4 LLightPos;
+uniform vec4 LLightAmbient;
+uniform vec4 LLightDiffuse;
+void main() {
+  vec3 normal, lightDir;
+  vec4 diffuse, ambient;
+  float NdotL;
+
+  /* first transform the normal into eye space and normalize the result */
+  normal = normalize(gl_NormalMatrix * LNormal);
+
+  /* now normalize the light's direction. Note that according to the
+     OpenGL specification, the light is stored in eye space. Also since
+     we're talking about a directional light, the position field is actually
+     direction */
+  lightDir = normalize(vec3(gl_LightSource[1].position));
+
+  /* compute the cos of the angle between the normal and lights direction.
+     The light is directional so the direction is constant for every vertex.
+     Since these two are normalized the cosine is the dot product. We also
+     need to clamp the result to the [0,1] range. */
+  NdotL = max(dot(normal, lightDir), 0.0);
+
+  /* Compute the diffuse term */
+  diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;
+  ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;
+  gl_FrontColor =  NdotL * diffuse + ambient;
+  gl_Position = gl_ModelViewProjectionMatrix * LVertexPos;
+}
+)glsl"
+  };
+
+  //Get fragment source
+  const GLchar* fragmentShaderSource[] =
+  {
+    R"glsl(
+#version 130
+void main() {
+  gl_FragColor = gl_Color;
+}
+)glsl"
+  };
+
+  _programID = create_program(vertexShaderSource, fragmentShaderSource);
+  if (_programID == GL_ZERO)
+  {
+    return -1;
+  }
+
+  _VertexPosHandle = glGetAttribLocation(_programID, "LVertexPos");
+  _NormalHandle = glGetAttribLocation(_programID, "LNormal");
+
+  _lightPos = glGetUniformLocation(_programID, "LLightPos");
+  _lightAmbient = glGetUniformLocation(_programID, "LLightAmbient");
+  _lightDiffuse = glGetUniformLocation(_programID, "LLightDiffuse");
+
+  GLfloat ambient_colour[] = {0.4f, 0.4f, 0.4f, 1.f};
+  GLfloat diffuse_colour[] = {1.f, 1.f, 1.00, 1.f};
+
+  // glUniform4fv(_lightAmbient, 1, ambient_colour);
+  glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_colour);
+  // glUniform4fv(_lightDiffuse, 1, diffuse_colour);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse_colour);
+
+  static const float vertexData[] = {
+    0.f, 0.f, 1.f,
+    1.f, 0.f, 1.f,
+    0.f, 1.f, 1.f,
+    1.f, 1.f, 1.f,
+    0.f, 0.f, 0.f,
+    0.f, 1.f, 0.f,
+    1.f, 0.f, 0.f,
+    1.f, 1.f, 0.f,
+    0.f, 0.f, 0.f,
+    0.f, 0.f, 1.f,
+    0.f, 1.f, 0.f,
+    0.f, 1.f, 1.f,
+    1.f, 0.f, 0.f,
+    1.f, 1.f, 0.f,
+    1.f, 0.f, 1.f,
+    1.f, 1.f, 1.f,
+    1.f, 1.f, 0.f,
+    0.f, 1.f, 0.f,
+    1.f, 1.f, 1.f,
+    0.f, 1.f, 1.f,
+    0.f, 0.f, 0.f,
+    1.f, 0.f, 0.f,
+    0.f, 0.f, 1.f,
+    1.f, 0.f, 1.f,
+    // normals
+    0.f, 0.f, 1.f,
+    0.f, 0.f, 1.f,
+    0.f, 0.f, 1.f,
+    0.f, 0.f, 1.f,
+    0.f, 0.f, -1.f,
+    0.f, 0.f, -1.f,
+    0.f, 0.f, -1.f,
+    0.f, 0.f, -1.f,
+    -1.f, 0.f, 0.f,
+    -1.f, 0.f, 0.f,
+    -1.f, 0.f, 0.f,
+    -1.f, 0.f, 0.f,
+    1.f, 0.f, 0.f,
+    1.f, 0.f, 0.f,
+    1.f, 0.f, 0.f,
+    1.f, 0.f, 0.f,
+    0.f, 1.f, 0.f,
+    0.f, 1.f, 0.f,
+    0.f, 1.f, 0.f,
+    0.f, 1.f, 0.f,
+    0.f, -1.f, 0.f,
+    0.f, -1.f, 0.f,
+    0.f, -1.f, 0.f,
+    0.f, -1.f, 0.f,
+  };
+  //Create VBO
+  glGenBuffers(1, &_VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, _VBO);
+  glBufferData(GL_ARRAY_BUFFER,
+               3 * 48 * sizeof(GLfloat),
+               vertexData,
+               GL_STATIC_DRAW);
+
+  glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+
+  return 0;
+} 
+
+void BoxRenderer::set_state()
+{
+  glUseProgram(_programID);
+
+  glEnableVertexAttribArray(_VertexPosHandle);
+  glEnableVertexAttribArray(_NormalHandle);
+
+  glBindBuffer(GL_ARRAY_BUFFER, _VBO);
+  glVertexAttribPointer(_VertexPosHandle, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+  glVertexAttribPointer(_NormalHandle, 3, GL_FLOAT, GL_FALSE, 0, (char*)(24 * 3 * sizeof(GLfloat)));
+}
+
+void BoxRenderer::reset_state()
+{
+    glDisableVertexAttribArray(_NormalHandle);
+    glDisableVertexAttribArray(_VertexPosHandle);
+    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+}
+
 void level(float factor)
 {
     Block ** p = &blocks;
@@ -708,7 +763,7 @@ void setup()
 
 #define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes) * sizeof(GLuint))
 
-void draw_unit_cube()
+void BoxRenderer::draw_unit_cube()
 {
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
 }
@@ -763,19 +818,12 @@ void render_scene()
     quaternion_rotmatrix(&orientation, matrix);
     glMultMatrixf(matrix);
 
-    glUseProgram(gProgramID);
-
-    glEnableVertexAttribArray(gVertexPosHandle);
-    glEnableVertexAttribArray(gNormalHandle);
-
-    glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-    glVertexAttribPointer(gVertexPosHandle, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glVertexAttribPointer(gNormalHandle, 3, GL_FLOAT, GL_FALSE, 0, (char*)(24 * 3 * sizeof(GLfloat)));
+    br.set_state();
 
     glPushMatrix();
     glScalef(.2f/scale, .2f/scale, .2f/scale);
     glTranslatef(-0.5f, -0.5f, -0.5f);
-    draw_unit_cube();
+    br.draw_unit_cube();
     glPopMatrix();
 
     Block * b;
@@ -790,7 +838,7 @@ void render_scene()
         glTranslatef(b->x, b->y, b->z);
         glScalef(b->scale, b->scale, b->scale);
         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
-        draw_unit_cube();
+        br.draw_unit_cube();
         glPopMatrix();
         
     }
@@ -808,14 +856,12 @@ void render_scene()
         glTranslatef(b->x, b->y, 0);
         glScalef(b->scale, b->scale, b->scale);
         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
-        draw_unit_cube();
+        br.draw_unit_cube();
         glPopMatrix();
         
     }
 
-    glDisableVertexAttribArray(gNormalHandle);
-    glDisableVertexAttribArray(gVertexPosHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+    br.reset_state();
 }
 
 // Draw any text output and other screen oriented user interface
