@@ -124,6 +124,7 @@ GLuint gVBO = 0;
 
 GLuint gProgramID = 0;
 GLint gVertexPosHandle = -1;
+GLint gNormalHandle = -1;
 
 static inline float square(float f)
 {
@@ -339,15 +340,14 @@ SDL_Window * init_graphics()
     R"glsl(
 #version 130
 attribute vec4 LVertexPos;
-varying vec3 normal;
-varying vec3 vertex_to_light_vector;
+attribute vec3 LNormal;
 void main() {
   vec3 normal, lightDir;
   vec4 diffuse, ambient;
   float NdotL;
 
   /* first transform the normal into eye space and normalize the result */
-  normal = normalize(gl_NormalMatrix * gl_Normal);
+  normal = normalize(gl_NormalMatrix * LNormal);
 
   /* now normalize the light's direction. Note that according to the
      OpenGL specification, the light is stored in eye space. Also since
@@ -388,6 +388,7 @@ void main() {
   }
 
   gVertexPosHandle = glGetAttribLocation(gProgramID, "LVertexPos");
+  gNormalHandle = glGetAttribLocation(gProgramID, "LNormal");
 
     // Setup the viewport transform
     glViewport(0, 0, screen_width, screen_height);
@@ -765,11 +766,11 @@ void render_scene()
     glUseProgram(gProgramID);
 
     glEnableVertexAttribArray(gVertexPosHandle);
-    glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableVertexAttribArray(gNormalHandle);
 
     glBindBuffer(GL_ARRAY_BUFFER, gVBO);
     glVertexAttribPointer(gVertexPosHandle, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glNormalPointer(GL_FLOAT, 0, (char*)(24 * 3 * sizeof(GLfloat)));
+    glVertexAttribPointer(gNormalHandle, 3, GL_FLOAT, GL_FALSE, 0, (char*)(24 * 3 * sizeof(GLfloat)));
 
     glPushMatrix();
     glScalef(.2f/scale, .2f/scale, .2f/scale);
@@ -812,7 +813,7 @@ void render_scene()
         
     }
 
-    glDisableClientState(GL_NORMAL_ARRAY);
+    glDisableVertexAttribArray(gNormalHandle);
     glDisableVertexAttribArray(gVertexPosHandle);
     glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 }
