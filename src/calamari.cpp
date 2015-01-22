@@ -1021,7 +1021,7 @@ void update(float delta)
             }
         } else {
             if (key_lb) {
-                printf("Roll left\n");
+                // printf("Roll left\n");
                 drift = -1;
             } else {
                 if (key_rb) {
@@ -1042,7 +1042,7 @@ void update(float delta)
     } else {
         if (key_rf) {
             if (key_rb) {
-                printf("Roll right\n");
+                // printf("Roll right\n");
                 drift = 1;
             } else {
                 if (key_lb) {
@@ -1149,7 +1149,7 @@ void update(float delta)
             axis[0] =   velocity[1] / mag;
             axis[1] = - velocity[0] / mag;
             axis[2] = 0;
-            printf("(%f,%f) %f\n", axis[0], axis[1], mag);
+            // printf("(%f,%f) %f\n", axis[0], axis[1], mag);
             orientation = quaternion_rotate(&orientation, axis, -mag * delta);
         }
     }
@@ -1199,7 +1199,7 @@ void update(float delta)
                 // bouncing y
                 if (pos_y > by) {
                     if (velocity[1] < 0) {
-                        printf("Bounce +x\n");
+                        // printf("Bounce +x\n");
                         velocity[1] = -velocity[1];
                         if (velocity[1] < 0.2) {
                             climbing = true;
@@ -1207,7 +1207,7 @@ void update(float delta)
                     }
                 } else {
                     if (velocity[1] > 0) {
-                        printf("Bounce -x\n");
+                        // printf("Bounce -x\n");
                         velocity[1] = -velocity[1];
                         if (velocity[1] > -0.2) {
                             climbing = true;
@@ -1218,7 +1218,7 @@ void update(float delta)
                 // bouncing x
                 if (pos_x > bx) {
                     if (velocity[0] < 0) {
-                        printf("Bounce +y\n");
+                        // printf("Bounce +y\n");
                         velocity[0] = -velocity[0];
                         if (velocity[0] < 0.2) {
                             climbing = true;
@@ -1226,7 +1226,7 @@ void update(float delta)
                     }
                 } else {
                     if (velocity[0] > 0) {
-                        printf("Bounce -y\n");
+                        // printf("Bounce -y\n");
                         velocity[0] = -velocity[0];
                         if (velocity[0] > -0.2) {
                             climbing = true;
