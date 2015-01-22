@@ -121,7 +121,6 @@ int average_frames_per_second;
 TextRenderer tr;
 
 GLuint gVBO = 0;
-GLuint gIBO = 0;
 
 GLuint gProgramID = 0;
 GLint gVertexPosHandle = -1;
@@ -410,40 +409,64 @@ void main() {
     }
 
     static const float vertexData[] = {
-        0.f, 0.f, 0.f,
-        1.f, 0.f, 0.f,
-        1.f, 1.f, 0.f,
-        0.f, 1.f, 0.f,
-        0.f, 0.f, 1.f,
-        1.f, 0.f, 1.f,
-        1.f, 1.f, 1.f,
-        0.f, 1.f, 1.f,
+      0.f, 0.f, 1.f,
+      1.f, 0.f, 1.f,
+      0.f, 1.f, 1.f,
+      1.f, 1.f, 1.f,
+      0.f, 0.f, 0.f,
+      0.f, 1.f, 0.f,
+      1.f, 0.f, 0.f,
+      1.f, 1.f, 0.f,
+      0.f, 0.f, 0.f,
+      0.f, 0.f, 1.f,
+      0.f, 1.f, 0.f,
+      0.f, 1.f, 1.f,
+      1.f, 0.f, 0.f,
+      1.f, 1.f, 0.f,
+      1.f, 0.f, 1.f,
+      1.f, 1.f, 1.f,
+      1.f, 1.f, 0.f,
+      0.f, 1.f, 0.f,
+      1.f, 1.f, 1.f,
+      0.f, 1.f, 1.f,
+      0.f, 0.f, 0.f,
+      1.f, 0.f, 0.f,
+      0.f, 0.f, 1.f,
+      1.f, 0.f, 1.f,
+      // normals
+      0.f, 0.f, 1.f,
+      0.f, 0.f, 1.f,
+      0.f, 0.f, 1.f,
+      0.f, 0.f, 1.f,
+      0.f, 0.f, -1.f,
+      0.f, 0.f, -1.f,
+      0.f, 0.f, -1.f,
+      0.f, 0.f, -1.f,
+      -1.f, 0.f, 0.f,
+      -1.f, 0.f, 0.f,
+      -1.f, 0.f, 0.f,
+      -1.f, 0.f, 0.f,
+      1.f, 0.f, 0.f,
+      1.f, 0.f, 0.f,
+      1.f, 0.f, 0.f,
+      1.f, 0.f, 0.f,
+      0.f, 1.f, 0.f,
+      0.f, 1.f, 0.f,
+      0.f, 1.f, 0.f,
+      0.f, 1.f, 0.f,
+      0.f, -1.f, 0.f,
+      0.f, -1.f, 0.f,
+      0.f, -1.f, 0.f,
+      0.f, -1.f, 0.f,
     };
     //Create VBO
     glGenBuffers(1, &gVBO);
     glBindBuffer(GL_ARRAY_BUFFER, gVBO);
     glBufferData(GL_ARRAY_BUFFER,
-                 3 * 8 * sizeof(GLfloat),
+                 3 * 48 * sizeof(GLfloat),
                  vertexData,
                  GL_STATIC_DRAW);
 
-    static const GLuint indexData[] = {
-        4, 5, 7, 6,
-        0, 3, 1, 2,
-        0, 4, 3, 7,
-        1, 2, 5, 6,
-        2, 3, 6, 7,
-        0, 1, 4, 5
-    };
-    //Create IBO
-    glGenBuffers(1, &gIBO);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 24 * sizeof(GLuint),
-                 indexData,
-                 GL_STATIC_DRAW);
-
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_ZERO);
     glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 
     // Set the projection transform
@@ -620,7 +643,6 @@ void TextRenderer::gl_print(const char * str)
   for (size_t i = 0; i < len; ++i)
   {
     int c = str[i] - 32;
-    glTexCoordPointer(2, GL_FLOAT, 0, (char*)(c * 2 * 4 * sizeof(GLfloat)));
     glUniform1i(_characterHandle, c);
     glDrawArrays(GL_QUADS, 0, 4);
     glTranslated(10,0,0); // Move To The Right Of The Character
@@ -687,23 +709,7 @@ void setup()
 
 void draw_unit_cube()
 {
-    glNormal3f(0,0,1);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(0));
-
-    glNormal3f(0,0,-1);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(4));
-
-    glNormal3f(-1,0,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(8));
-
-    glNormal3f(1,0,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(12));
-
-    glNormal3f(0,1,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(16));
-
-    glNormal3f(0,-1,0);
-    glDrawElements(GL_TRIANGLE_STRIP, 4, GL_UNSIGNED_INT, BUFFER_OFFSET(20));
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
 }
 
 float camera_rotation = 0.0f;
@@ -759,10 +765,11 @@ void render_scene()
     glUseProgram(gProgramID);
 
     glEnableVertexAttribArray(gVertexPosHandle);
+    glEnableClientState(GL_NORMAL_ARRAY);
 
     glBindBuffer(GL_ARRAY_BUFFER, gVBO);
     glVertexAttribPointer(gVertexPosHandle, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
+    glNormalPointer(GL_FLOAT, 0, (char*)(24 * 3 * sizeof(GLfloat)));
 
     glPushMatrix();
     glScalef(.2f/scale, .2f/scale, .2f/scale);
@@ -805,6 +812,7 @@ void render_scene()
         
     }
 
+    glDisableClientState(GL_NORMAL_ARRAY);
     glDisableVertexAttribArray(gVertexPosHandle);
     glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 }
