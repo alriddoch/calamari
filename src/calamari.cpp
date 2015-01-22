@@ -85,6 +85,7 @@ class BoxRenderer
   GLint _lightPos = -1;
   GLint _lightAmbient = -1;
   GLint _lightDiffuse = -1;
+  GLint _material = -1;
 
  public:
   BoxRenderer() = default;
@@ -94,7 +95,7 @@ class BoxRenderer
   void set_state();
   void reset_state();
 
-  void draw_unit_cube();
+  void draw_unit_cube(float *);
 };
 
 // Variables that store the game state
@@ -382,9 +383,6 @@ SDL_Window * init_graphics()
     // Set the camera position
     camera_pos();
 
-    GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
-    glLightfv(GL_LIGHT1, GL_POSITION, lightPos);
-
     return screen;
 }
 
@@ -560,9 +558,10 @@ int BoxRenderer::setup()
 #version 130
 attribute vec4 LVertexPos;
 attribute vec3 LNormal;
-uniform vec4 LLightPos;
+uniform vec3 LLightPos;
 uniform vec4 LLightAmbient;
 uniform vec4 LLightDiffuse;
+uniform vec4 LMaterial;
 void main() {
   vec3 normal, lightDir;
   vec4 diffuse, ambient;
@@ -575,7 +574,7 @@ void main() {
      OpenGL specification, the light is stored in eye space. Also since
      we're talking about a directional light, the position field is actually
      direction */
-  lightDir = normalize(vec3(gl_LightSource[1].position));
+  lightDir = normalize(vec3(LLightPos));
 
   /* compute the cos of the angle between the normal and lights direction.
      The light is directional so the direction is constant for every vertex.
@@ -584,8 +583,8 @@ void main() {
   NdotL = max(dot(normal, lightDir), 0.0);
 
   /* Compute the diffuse term */
-  diffuse = gl_FrontMaterial.diffuse * gl_LightSource[1].diffuse;
-  ambient = gl_FrontMaterial.ambient * gl_LightSource[1].ambient;
+  diffuse = LMaterial * LLightDiffuse;
+  ambient = LMaterial * LLightAmbient;
   gl_FrontColor =  NdotL * diffuse + ambient;
   gl_Position = gl_ModelViewProjectionMatrix * LVertexPos;
 }
@@ -615,14 +614,19 @@ void main() {
   _lightPos = glGetUniformLocation(_programID, "LLightPos");
   _lightAmbient = glGetUniformLocation(_programID, "LLightAmbient");
   _lightDiffuse = glGetUniformLocation(_programID, "LLightDiffuse");
+  _material = glGetUniformLocation(_programID, "LMaterial");
+
+  glUseProgram(_programID);
+
+  // FIXME: This specifies the light in eye coords
+  GLfloat lightPos[] = {0.f, 0.f, 1.f, 0.f};
+  glUniform3fv(_lightPos, 1, lightPos);
 
   GLfloat ambient_colour[] = {0.4f, 0.4f, 0.4f, 1.f};
   GLfloat diffuse_colour[] = {1.f, 1.f, 1.00, 1.f};
 
-  // glUniform4fv(_lightAmbient, 1, ambient_colour);
-  glLightfv(GL_LIGHT1, GL_AMBIENT, ambient_colour);
-  // glUniform4fv(_lightDiffuse, 1, diffuse_colour);
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, diffuse_colour);
+  glUniform4fv(_lightAmbient, 1, ambient_colour);
+  glUniform4fv(_lightDiffuse, 1, diffuse_colour);
 
   static const float vertexData[] = {
     0.f, 0.f, 1.f,
@@ -763,9 +767,10 @@ void setup()
 
 #define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes) * sizeof(GLuint))
 
-void BoxRenderer::draw_unit_cube()
+void BoxRenderer::draw_unit_cube(float * material)
 {
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
+  glUniform4fv(_material, 1, material);
+  glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
 }
 
 float camera_rotation = 0.0f;
@@ -823,7 +828,8 @@ void render_scene()
     glPushMatrix();
     glScalef(.2f/scale, .2f/scale, .2f/scale);
     glTranslatef(-0.5f, -0.5f, -0.5f);
-    br.draw_unit_cube();
+    static float white[] = {1.0f, 1.f, 1.f, 0};
+    br.draw_unit_cube(white);
     glPopMatrix();
 
     Block * b;
@@ -837,8 +843,7 @@ void render_scene()
         glScalef(1/scale, 1/scale, 1/scale);
         glTranslatef(b->x, b->y, b->z);
         glScalef(b->scale, b->scale, b->scale);
-        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
-        br.draw_unit_cube();
+        br.draw_unit_cube(b->diffuse);
         glPopMatrix();
         
     }
@@ -855,8 +860,7 @@ void render_scene()
         glPushMatrix();
         glTranslatef(b->x, b->y, 0);
         glScalef(b->scale, b->scale, b->scale);
-        glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, b->diffuse);
-        br.draw_unit_cube();
+        br.draw_unit_cube(b->diffuse);
         glPopMatrix();
         
     }
