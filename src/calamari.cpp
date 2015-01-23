@@ -60,7 +60,6 @@ class TextRenderer
   GLuint _vbo[1];
 
   GLint _vertexHandle;
-  GLint _verticesHandle;
   GLint _characterHandle;
   GLint _texcoordHandle;
 
@@ -404,22 +403,21 @@ int TextRenderer::setup()
   //float cy=(float)(loop/16)/16.0f;      // Y Position Of Current Character
     R"glsl(
 #version 130
-attribute int LVertexNum;
 uniform int LCharacter;
-uniform vec2[4] LVertices;
-uniform vec2[4] LTexCoords;
+attribute vec2 LVertex;
+attribute vec2 LTexCoord;
 void main() {
 
   // Texture coord reference points on the grid
   float cx=float(LCharacter%16)/16.0f;
   float cy=float(LCharacter/16)/16.0f;
 
-  gl_TexCoord[0] = vec4(LTexCoords[LVertexNum].s + cx,
-                        LTexCoords[LVertexNum].t - cy,
+  gl_TexCoord[0] = vec4(LTexCoord.s + cx,
+                        LTexCoord.t - cy,
                         0,
                         0);
-  gl_Position = gl_ModelViewProjectionMatrix * vec4(LVertices[LVertexNum].x,
-                                                    LVertices[LVertexNum].y,
+  gl_Position = gl_ModelViewProjectionMatrix * vec4(LVertex.x,
+                                                    LVertex.y,
                                                     0,
                                                     1);
 }
@@ -458,26 +456,29 @@ void main() {
 
   glGenBuffers(1, &(_vbo[0]));
 
-  GLint coordnums[] = { 0, 1, 2, 3 };
+  float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16, // };
+
+  //float cx=(float)(glyph%16)/16.0f;      // X Position Of Current Character
+  //float cy=(float)(glyph/16)/16.0f;      // Y Position Of Current Character
+  //                     +cx      -cy
+  // float ltexcoords[] = { 
+                         0,       1-0.0625f,
+                         0.0625f, 1-0.0625f,
+                         0.0625f, 1,
+                         0,       1 };
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
   glBufferData(GL_ARRAY_BUFFER,
-               4 * sizeof(GLint),
-               coordnums,
+               4 * 2 * 2 * sizeof(GLfloat),
+               vertices,
                GL_STATIC_DRAW);
 
-  _vertexHandle = glGetAttribLocation(_programID, "LVertexNum");
+  _vertexHandle = glGetAttribLocation(_programID, "LVertex");
   if (_vertexHandle == -1)
   {
     return -1;
   }
 
-  _verticesHandle = glGetUniformLocation(_programID, "LVertices");
-  if (_verticesHandle == -1)
-  {
-    return -1;
-  }
-
-  _texcoordHandle = glGetUniformLocation(_programID, "LTexCoords");
+  _texcoordHandle = glGetAttribLocation(_programID, "LTexCoord");
   if (_texcoordHandle == -1)
   {
     std::cout << "1" << std::endl;
@@ -491,20 +492,6 @@ void main() {
     return -1;
   }
 
-  // Program must be current in order for glUniform to work.
-  glUseProgram(_programID);
-
-  float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16 };
-  glUniform2fv(_verticesHandle, 4, vertices);
-
-  //float cx=(float)(glyph%16)/16.0f;      // X Position Of Current Character
-  //float cy=(float)(glyph/16)/16.0f;      // Y Position Of Current Character
-  //                     +cx      -cy
-  float ltexcoords[] = { 0,       1-0.0625f,
-                         0.0625f, 1-0.0625f,
-                         0.0625f, 1,
-                         0,       1 };
-  glUniform2fv(_texcoordHandle, 4, ltexcoords);
   return 0;
 }
 
@@ -513,9 +500,11 @@ void TextRenderer::set_state()
   glUseProgram(_programID);
 
   glEnableVertexAttribArray(_vertexHandle);
+  glEnableVertexAttribArray(_texcoordHandle);
 
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
-  glVertexAttribIPointer(_vertexHandle, 1, GL_INT, 0, nullptr);
+  glVertexAttribPointer(_vertexHandle, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+  glVertexAttribPointer(_texcoordHandle, 2, GL_FLOAT, GL_FALSE, 0, (char *)(4 * 2 * sizeof(GLfloat)));
 
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glBindTexture(GL_TEXTURE_2D, _textTexture);
@@ -529,6 +518,7 @@ void TextRenderer::reset_state()
   glDisable(GL_TEXTURE_2D);
 
   glDisableVertexAttribArray(_vertexHandle);
+  glDisableVertexAttribArray(_texcoordHandle);
 }
 
 // Clear the grid state.
