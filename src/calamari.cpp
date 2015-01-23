@@ -456,7 +456,10 @@ void main() {
 
   glGenBuffers(1, &(_vbo[0]));
 
-  float vertices[] = { 0, 0, 16, 0, 16, 16, 0, 16, // };
+  float vertices[] = { 0, 0,
+                       16, 0,
+                       0, 16,
+                       16, 16,
 
   //float cx=(float)(glyph%16)/16.0f;      // X Position Of Current Character
   //float cy=(float)(glyph/16)/16.0f;      // Y Position Of Current Character
@@ -464,8 +467,9 @@ void main() {
   // float ltexcoords[] = { 
                          0,       1-0.0625f,
                          0.0625f, 1-0.0625f,
+                         0,       1,
                          0.0625f, 1,
-                         0,       1 };
+  };
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
   glBufferData(GL_ARRAY_BUFFER,
                4 * 2 * 2 * sizeof(GLfloat),
@@ -532,7 +536,7 @@ void TextRenderer::gl_print(const char * str)
   {
     int c = str[i] - 32;
     glUniform1i(_characterHandle, c);
-    glDrawArrays(GL_QUADS, 0, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glTranslated(10,0,0); // Move To The Right Of The Character
   }
 
