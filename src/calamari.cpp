@@ -59,7 +59,6 @@ class TextRenderer
   GLuint _programID = 0;
   GLuint _vbo[1];
 
-  GLint _vertexHandle;
   GLint _characterHandle;
   GLint _texcoordHandle;
 
@@ -404,7 +403,6 @@ int TextRenderer::setup()
     R"glsl(
 #version 130
 uniform int LCharacter;
-attribute vec2 LVertex;
 attribute vec2 LTexCoord;
 void main() {
 
@@ -416,8 +414,8 @@ void main() {
                         LTexCoord.t - cy,
                         0,
                         0);
-  gl_Position = gl_ModelViewProjectionMatrix * vec4(LVertex.x,
-                                                    LVertex.y,
+  gl_Position = gl_ModelViewProjectionMatrix * vec4((gl_VertexID % 2) * 16,
+                                                    (gl_VertexID / 2) * 16,
                                                     0,
                                                     1);
 }
@@ -456,10 +454,13 @@ void main() {
 
   glGenBuffers(1, &(_vbo[0]));
 
-  float vertices[] = { 0, 0,
-                       16, 0,
-                       0, 16,
-                       16, 16,
+  float vertices[] = { 
+  // These can be computed from the vertexID
+  //                   id % 2, id / 2
+  //                   0, 0,
+  //                   16, 0,
+  //                   0, 16,
+  //                   16, 16,
 
   //float cx=(float)(glyph%16)/16.0f;      // X Position Of Current Character
   //float cy=(float)(glyph/16)/16.0f;      // Y Position Of Current Character
@@ -472,15 +473,9 @@ void main() {
   };
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
   glBufferData(GL_ARRAY_BUFFER,
-               4 * 2 * 2 * sizeof(GLfloat),
+               4 * 2 * sizeof(GLfloat),
                vertices,
                GL_STATIC_DRAW);
-
-  _vertexHandle = glGetAttribLocation(_programID, "LVertex");
-  if (_vertexHandle == -1)
-  {
-    return -1;
-  }
 
   _texcoordHandle = glGetAttribLocation(_programID, "LTexCoord");
   if (_texcoordHandle == -1)
@@ -503,12 +498,10 @@ void TextRenderer::set_state()
 {
   glUseProgram(_programID);
 
-  glEnableVertexAttribArray(_vertexHandle);
   glEnableVertexAttribArray(_texcoordHandle);
 
   glBindBuffer(GL_ARRAY_BUFFER, _vbo[0]);
-  glVertexAttribPointer(_vertexHandle, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-  glVertexAttribPointer(_texcoordHandle, 2, GL_FLOAT, GL_FALSE, 0, (char *)(4 * 2 * sizeof(GLfloat)));
+  glVertexAttribPointer(_texcoordHandle, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
 
   glBlendFunc(GL_SRC_ALPHA,GL_ONE_MINUS_SRC_ALPHA);
   glBindTexture(GL_TEXTURE_2D, _textTexture);
@@ -521,7 +514,6 @@ void TextRenderer::reset_state()
   glDisable(GL_BLEND);
   glDisable(GL_TEXTURE_2D);
 
-  glDisableVertexAttribArray(_vertexHandle);
   glDisableVertexAttribArray(_texcoordHandle);
 }
 
