@@ -795,15 +795,6 @@ void grid_origin(GLfloat * mview)
 
 void camera_pos(GLfloat * mview)
 {
-#if 0
-    // Move the camera 20 units from the objects
-    // and one unit above
-    glTranslatef(0.0f, -1.0f, -10.0f);
-
-    // Set the angle so we just can't see the horizon
-    glRotatef(-65, 1, 0, 0);
-    glRotatef(angle, 0, 0, 1);
-#else
     // Move the camera 20 units from the objects
     // and one unit above
     matrix_translate(mview, 0.0f, -1.0f, -10.0f);
@@ -812,7 +803,6 @@ void camera_pos(GLfloat * mview)
     matrix_rotate(mview, -65, 1, 0, 0);
     matrix_rotate(mview, angle, 0, 0, 1);
     glLoadMatrixf(mview);
-#endif
 }
 
 void render_scene()
@@ -834,8 +824,6 @@ void render_scene()
 
     // Set up the modelview
     glMatrixMode(GL_MODELVIEW);
-    // Reset the camera
-    glLoadIdentity();
     // Set the camera position
     GLfloat mview[16];
     std::stack<Matrix> mview_stack;
@@ -863,7 +851,6 @@ void render_scene()
 
     memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
     mview_stack.pop();
-    glLoadMatrixf(mview);
 
     Block * b;
     for (b = blocks; b != nullptr; b = b->next) {
@@ -884,15 +871,12 @@ void render_scene()
 
         memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
         mview_stack.pop();
-        glLoadMatrixf(mview);
     }
 
     memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
     mview_stack.pop();
-    glLoadMatrixf(mview);
 
     grid_origin(mview);
-    glLoadMatrixf(mview);
 
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 0) {
@@ -907,8 +891,6 @@ void render_scene()
 
         memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
         mview_stack.pop();
-        glLoadMatrixf(mview);
-        
     }
 
     br.reset_state();
@@ -930,7 +912,9 @@ void render_interface()
     // Set up the modelview
     glMatrixMode(GL_MODELVIEW);
     // Reset the camera
-    glLoadIdentity();
+    GLfloat mview[16];
+    std::stack<Matrix> mview_stack;
+    matrix_identity(mview);
 
     // Disable the depth test, as its not useful when rendering text
     glDisable(GL_DEPTH_TEST);
@@ -940,15 +924,19 @@ void render_interface()
     // Print the number of frames per second. This is essential performance
     // information when developing 3D graphics.
 
-    glPushMatrix();
+    mview_stack.push(mview);
     // Use glTranslatef to go to the screen coordinates where we want the
     // text. The origin is the bottom left by default in OpenGL.
-    glTranslatef(5.f, 5.f, 0);
+    matrix_translate(mview, 5.f, 5.f, 0);
+    glLoadMatrixf(mview);
     sprintf(buf, "FPS: %d", average_frames_per_second);
     tr.gl_print(buf);
-    glPopMatrix();
 
-    glTranslatef(5.f, screen_height - 16 - 5, 0);
+    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+    mview_stack.pop();
+
+    matrix_translate(mview, 5.f, screen_height - 16 - 5, 0);
+    glLoadMatrixf(mview);
     int metres = floor(scale);
     int centimetres = floor(fmod(scale, 1) * 100.f);
     int milimetres = floor(fmod(scale, .01) * 1000.f);
