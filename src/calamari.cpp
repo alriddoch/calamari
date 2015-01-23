@@ -19,9 +19,12 @@
 
 #include "font.h"
 
+#include "matrix.h"
+
 #include <cmath>
 #include <iostream>
 #include <limits>
+#include <stack>
 
 #include <assert.h>
 
@@ -49,6 +52,21 @@ typedef struct block {
 } Block;
 
 Block * blocks = 0;
+
+class Matrix
+{
+  GLfloat data[16];
+ public:
+  Matrix(float const * d)
+  {
+    memcpy(data, d, 16 * sizeof(GLfloat));
+  }
+
+  operator GLfloat*()
+  {
+    return data;
+  }
+};
 
 class TextRenderer
 {
@@ -232,7 +250,7 @@ void printShaderLog(GLuint shader)
   }
 }
 
-void camera_pos();
+void camera_pos(GLfloat *);
 
 GLuint create_shader(GLenum type, const GLchar ** shaderSource)
 {
@@ -370,16 +388,23 @@ SDL_Window * init_graphics()
 
     // Set the projection transform
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
-    glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
+    // glLoadIdentity();
+    // float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
+    // glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
+
+    GLfloat proj[16];
+    matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
+    glLoadMatrixf(proj);
 
     // Set up the modelview
     glMatrixMode(GL_MODELVIEW);
     // Reset the camera
     glLoadIdentity();
+
+    GLfloat mview[16];
+    matrix_identity(mview);
     // Set the camera position
-    camera_pos();
+    camera_pos(mview);
 
     return screen;
 }
@@ -521,7 +546,6 @@ void TextRenderer::reset_state()
 // Print a text string on the screen at the current position.
 void TextRenderer::gl_print(const char * str)
 {
-  glPushMatrix();
 
   size_t len = strlen(str);
   for (size_t i = 0; i < len; ++i)
@@ -532,7 +556,6 @@ void TextRenderer::gl_print(const char * str)
     glTranslated(10,0,0); // Move To The Right Of The Character
   }
 
-  glPopMatrix();
 }
 
 int BoxRenderer::setup()
@@ -761,17 +784,18 @@ void BoxRenderer::draw_unit_cube(float * material)
 
 float camera_rotation = 0.0f;
 
-void grid_origin()
+void grid_origin(GLfloat * mview)
 {
-    glTranslatef(0, 0, -1);
-    glScalef(1.f/scale, 1.f/scale, 1.f/scale);
+    matrix_translate(mview, 0, 0, -1);
+    matrix_scale(mview, 1.f/scale, 1.f/scale, 1.f/scale);
     // Add a little camera movement
     // glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
-    glTranslatef(-pos_x, -pos_y, -pos_z);
+    matrix_translate(mview, -pos_x, -pos_y, -pos_z);
 }
 
-void camera_pos()
+void camera_pos(GLfloat * mview)
 {
+#if 0
     // Move the camera 20 units from the objects
     // and one unit above
     glTranslatef(0.0f, -1.0f, -10.0f);
@@ -779,7 +803,16 @@ void camera_pos()
     // Set the angle so we just can't see the horizon
     glRotatef(-65, 1, 0, 0);
     glRotatef(angle, 0, 0, 1);
+#else
+    // Move the camera 20 units from the objects
+    // and one unit above
+    matrix_translate(mview, 0.0f, -1.0f, -10.0f);
 
+    // Set the angle so we just can't see the horizon
+    matrix_rotate(mview, -65, 1, 0, 0);
+    matrix_rotate(mview, angle, 0, 0, 1);
+    glLoadMatrixf(mview);
+#endif
 }
 
 void render_scene()
@@ -792,62 +825,89 @@ void render_scene()
 
     // Set the projection transform
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
-    glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
+    // glLoadIdentity();
+    // float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
+    // glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
+    GLfloat proj[16];
+    matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
+    glLoadMatrixf(proj);
 
     // Set up the modelview
     glMatrixMode(GL_MODELVIEW);
     // Reset the camera
     glLoadIdentity();
     // Set the camera position
-    camera_pos();
+    GLfloat mview[16];
+    std::stack<Matrix> mview_stack;
+    matrix_identity(mview);
+    camera_pos(mview);
 
-    glPushMatrix();
+    mview_stack.push(mview);
 
     GLfloat matrix[16];
     quaternion_rotmatrix(&orientation, matrix);
-    glMultMatrixf(matrix);
+
+    matrix_multiply(mview, matrix);
 
     br.set_state();
 
-    glPushMatrix();
-    glScalef(.2f/scale, .2f/scale, .2f/scale);
-    glTranslatef(-0.5f, -0.5f, -0.5f);
+    mview_stack.push(mview);
+
+    matrix_scale(mview, .2f/scale, .2f/scale, .2f/scale);
+    matrix_translate(mview, -0.5f, -0.5f, -0.5f);
+
+    glLoadMatrixf(mview);
+
     static float white[] = {1.0f, 1.f, 1.f, 0};
     br.draw_unit_cube(white);
-    glPopMatrix();
+
+    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+    mview_stack.pop();
+    glLoadMatrixf(mview);
 
     Block * b;
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 1) {
             continue;
         }
-        glPushMatrix();
+        mview_stack.push(mview);
+
         quaternion_rotmatrix(&b->orientation, matrix);
-        glMultMatrixf(matrix);
-        glScalef(1/scale, 1/scale, 1/scale);
-        glTranslatef(b->x, b->y, b->z);
-        glScalef(b->scale, b->scale, b->scale);
+        matrix_multiply(mview, matrix);
+
+        matrix_scale(mview, 1/scale, 1/scale, 1/scale);
+        matrix_translate(mview, b->x, b->y, b->z);
+        matrix_scale(mview, b->scale, b->scale, b->scale);
+
+        glLoadMatrixf(mview);
         br.draw_unit_cube(b->diffuse);
-        glPopMatrix();
-        
+
+        memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+        mview_stack.pop();
+        glLoadMatrixf(mview);
     }
 
-    glPopMatrix();
+    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+    mview_stack.pop();
+    glLoadMatrixf(mview);
 
-    grid_origin();
-
+    grid_origin(mview);
+    glLoadMatrixf(mview);
 
     for (b = blocks; b != nullptr; b = b->next) {
         if (b->present != 0) {
             continue;
         }
-        glPushMatrix();
-        glTranslatef(b->x, b->y, 0);
-        glScalef(b->scale, b->scale, b->scale);
+        mview_stack.push(mview);
+
+        matrix_translate(mview, b->x, b->y, 0);
+        matrix_scale(mview, b->scale, b->scale, b->scale);
+        glLoadMatrixf(mview);
         br.draw_unit_cube(b->diffuse);
-        glPopMatrix();
+
+        memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+        mview_stack.pop();
+        glLoadMatrixf(mview);
         
     }
 

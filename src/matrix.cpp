@@ -72,7 +72,7 @@ void matrix_rotate(GLfloat *m, GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
 {
    GLfloat s, c;
 
-   sincosf(angle, &s, &c);
+   sincosf((angle * M_PI) / 180.f, &s, &c);
    GLfloat r[16] = {
       x * x * (1 - c) + c,     y * x * (1 - c) + z * s, x * z * (1 - c) - y * s, 0,
       x * y * (1 - c) - z * s, y * y * (1 - c) + c,     y * z * (1 - c) + x * s, 0, 
@@ -81,6 +81,21 @@ void matrix_rotate(GLfloat *m, GLfloat angle, GLfloat x, GLfloat y, GLfloat z)
    };
 
    matrix_multiply(m, r);
+}
+
+/** 
+ * Scales a 4x4 matrix.
+ * 
+ * @param[in,out] m the matrix to translate
+ * @param x the x component of the scale factor
+ * @param y the y component of the scale factor
+ * @param z the z component of the scale factor
+ */
+void matrix_scale(GLfloat *m, GLfloat x, GLfloat y, GLfloat z)
+{
+   GLfloat t[16] = { x, 0, 0, 0,  0, y, 0, 0,  0, 0, z, 0,  0, 0, 0, 1 };
+
+   matrix_multiply(m, t);
 }
 
 /** 

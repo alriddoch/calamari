@@ -28,6 +28,7 @@
 
 void matrix_multiply(GLfloat *m, const GLfloat *n);
 void matrix_rotate(GLfloat *m, GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
+void matrix_scale(GLfloat *m, GLfloat x, GLfloat y, GLfloat z);
 void matrix_translate(GLfloat *m, GLfloat x, GLfloat y, GLfloat z);
 void matrix_identity(GLfloat *m);
 void matrix_transpose(GLfloat *m);
