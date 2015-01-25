@@ -77,6 +77,8 @@ class TextRenderer
   GLuint _programID = 0;
   GLuint _vbo[1];
 
+  GLint _modelviewHandle;
+  GLint _projectionHandle;
   GLint _characterHandle;
   GLint _texcoordHandle;
 
@@ -85,10 +87,10 @@ class TextRenderer
 
   int setup();
 
-  void set_state();
+  void set_state(GLfloat * proj);
   void reset_state();
 
-  void gl_print(const char * str);
+  void gl_print(const char * str, GLfloat * modelview);
 };
 
 class BoxRenderer
@@ -98,6 +100,8 @@ class BoxRenderer
   GLuint _programID = 0;
   GLint _VertexPosHandle = -1;
   GLint _NormalHandle = -1;
+  GLint _modelviewHandle = -1;
+  GLint _projectionHandle = -1;
   GLint _lightPos = -1;
   GLint _lightAmbient = -1;
   GLint _lightDiffuse = -1;
@@ -108,10 +112,10 @@ class BoxRenderer
 
   int setup();
 
-  void set_state();
+  void set_state(GLfloat * proj);
   void reset_state();
 
-  void draw_unit_cube(float *);
+  void draw_unit_cube(float *, GLfloat * mview);
 };
 
 // Variables that store the game state
@@ -386,26 +390,6 @@ SDL_Window * init_graphics()
       return nullptr;
     }
 
-    // Set the projection transform
-    glMatrixMode(GL_PROJECTION);
-    // glLoadIdentity();
-    // float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
-    // glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
-
-    GLfloat proj[16];
-    matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
-    glLoadMatrixf(proj);
-
-    // Set up the modelview
-    glMatrixMode(GL_MODELVIEW);
-    // Reset the camera
-    glLoadIdentity();
-
-    GLfloat mview[16];
-    matrix_identity(mview);
-    // Set the camera position
-    camera_pos(mview);
-
     return screen;
 }
 
@@ -428,6 +412,8 @@ int TextRenderer::setup()
     R"glsl(
 #version 130
 uniform int LCharacter;
+uniform mat4 LMV;
+uniform mat4 LPM;
 attribute vec2 LTexCoord;
 void main() {
 
@@ -439,10 +425,10 @@ void main() {
                         LTexCoord.t - cy,
                         0,
                         0);
-  gl_Position = gl_ModelViewProjectionMatrix * vec4((gl_VertexID % 2) * 16,
-                                                    (gl_VertexID / 2) * 16,
-                                                    0,
-                                                    1);
+  gl_Position = (LPM * LMV) * vec4((gl_VertexID % 2) * 16,
+                                   (gl_VertexID / 2) * 16,
+                                   0,
+                                   1);
 }
 )glsl"
   };
@@ -509,6 +495,20 @@ void main() {
     return -1;
   }
 
+  _modelviewHandle = glGetUniformLocation(_programID, "LMV");
+  if (_modelviewHandle == -1)
+  {
+    std::cout << "1.1" << std::endl;
+    return -1;
+  }
+
+  _projectionHandle = glGetUniformLocation(_programID, "LPM");
+  if (_projectionHandle == -1)
+  {
+    std::cout << "1.2" << std::endl;
+    return -1;
+  }
+
   _characterHandle = glGetUniformLocation(_programID, "LCharacter");
   if (_characterHandle == -1)
   {
@@ -519,9 +519,11 @@ void main() {
   return 0;
 }
 
-void TextRenderer::set_state()
+void TextRenderer::set_state(GLfloat * proj)
 {
   glUseProgram(_programID);
+
+  glUniformMatrix4fv(_projectionHandle, 1, GL_FALSE, proj);
 
   glEnableVertexAttribArray(_texcoordHandle);
 
@@ -544,16 +546,16 @@ void TextRenderer::reset_state()
 
 // Clear the grid state.
 // Print a text string on the screen at the current position.
-void TextRenderer::gl_print(const char * str)
+void TextRenderer::gl_print(const char * str, GLfloat * mview)
 {
-
   size_t len = strlen(str);
   for (size_t i = 0; i < len; ++i)
   {
     int c = str[i] - 32;
     glUniform1i(_characterHandle, c);
+    glUniformMatrix4fv(_modelviewHandle, 1, GL_FALSE, mview);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    glTranslated(10,0,0); // Move To The Right Of The Character
+    matrix_translate(mview, 10,0,0); // Move To The Right Of The Character
   }
 
 }
@@ -567,6 +569,8 @@ int BoxRenderer::setup()
 #version 130
 attribute vec4 LVertexPos;
 attribute vec3 LNormal;
+uniform mat4 LMV;
+uniform mat4 LPM;
 uniform vec3 LLightPos;
 uniform vec4 LLightAmbient;
 uniform vec4 LLightDiffuse;
@@ -595,7 +599,7 @@ void main() {
   diffuse = LMaterial * LLightDiffuse;
   ambient = LMaterial * LLightAmbient;
   gl_FrontColor =  NdotL * diffuse + ambient;
-  gl_Position = gl_ModelViewProjectionMatrix * LVertexPos;
+  gl_Position = (LPM * LMV) * LVertexPos;
 }
 )glsl"
   };
@@ -620,6 +624,8 @@ void main() {
   _VertexPosHandle = glGetAttribLocation(_programID, "LVertexPos");
   _NormalHandle = glGetAttribLocation(_programID, "LNormal");
 
+  _modelviewHandle = glGetUniformLocation(_programID, "LMV");
+  _projectionHandle = glGetUniformLocation(_programID, "LPM");
   _lightPos = glGetUniformLocation(_programID, "LLightPos");
   _lightAmbient = glGetUniformLocation(_programID, "LLightAmbient");
   _lightDiffuse = glGetUniformLocation(_programID, "LLightDiffuse");
@@ -701,9 +707,11 @@ void main() {
   return 0;
 } 
 
-void BoxRenderer::set_state()
+void BoxRenderer::set_state(GLfloat * proj)
 {
   glUseProgram(_programID);
+
+  glUniformMatrix4fv(_projectionHandle, 1, GL_FALSE, proj);
 
   glEnableVertexAttribArray(_VertexPosHandle);
   glEnableVertexAttribArray(_NormalHandle);
@@ -776,8 +784,9 @@ void setup()
 
 #define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes) * sizeof(GLuint))
 
-void BoxRenderer::draw_unit_cube(float * material)
+void BoxRenderer::draw_unit_cube(float * material, GLfloat * mview)
 {
+  glUniformMatrix4fv(_modelviewHandle, 1, GL_FALSE, mview);
   glUniform4fv(_material, 1, material);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
 }
@@ -788,8 +797,6 @@ void grid_origin(GLfloat * mview)
 {
     matrix_translate(mview, 0, 0, -1);
     matrix_scale(mview, 1.f/scale, 1.f/scale, 1.f/scale);
-    // Add a little camera movement
-    // glRotatef(10, sin(camera_rotation), cos(camera_rotation), 0.0f);
     matrix_translate(mview, -pos_x, -pos_y, -pos_z);
 }
 
@@ -802,7 +809,6 @@ void camera_pos(GLfloat * mview)
     // Set the angle so we just can't see the horizon
     matrix_rotate(mview, -65, 1, 0, 0);
     matrix_rotate(mview, angle, 0, 0, 1);
-    glLoadMatrixf(mview);
 }
 
 void render_scene()
@@ -814,16 +820,9 @@ void render_scene()
     glEnable(GL_DEPTH_TEST);
 
     // Set the projection transform
-    glMatrixMode(GL_PROJECTION);
-    // glLoadIdentity();
-    // float s = ((float)screen_width / (float)screen_height) * 3.0f / 8.0f;
-    // glFrustum(-s, s, -0.375f, 0.375f, 0.65f, 100.f);
     GLfloat proj[16];
     matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
-    glLoadMatrixf(proj);
 
-    // Set up the modelview
-    glMatrixMode(GL_MODELVIEW);
     // Set the camera position
     GLfloat mview[16];
     std::stack<Matrix> mview_stack;
@@ -837,17 +836,17 @@ void render_scene()
 
     matrix_multiply(mview, matrix);
 
-    br.set_state();
+    br.set_state(proj);
 
     mview_stack.push(mview);
 
     matrix_scale(mview, .2f/scale, .2f/scale, .2f/scale);
     matrix_translate(mview, -0.5f, -0.5f, -0.5f);
 
-    glLoadMatrixf(mview);
+    // FIXME need to implement Normal matrix (inverse transpose modelview)
 
     static float white[] = {1.0f, 1.f, 1.f, 0};
-    br.draw_unit_cube(white);
+    br.draw_unit_cube(white, mview);
 
     memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
     mview_stack.pop();
@@ -866,8 +865,7 @@ void render_scene()
         matrix_translate(mview, b->x, b->y, b->z);
         matrix_scale(mview, b->scale, b->scale, b->scale);
 
-        glLoadMatrixf(mview);
-        br.draw_unit_cube(b->diffuse);
+        br.draw_unit_cube(b->diffuse, mview);
 
         memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
         mview_stack.pop();
@@ -886,8 +884,7 @@ void render_scene()
 
         matrix_translate(mview, b->x, b->y, 0);
         matrix_scale(mview, b->scale, b->scale, b->scale);
-        glLoadMatrixf(mview);
-        br.draw_unit_cube(b->diffuse);
+        br.draw_unit_cube(b->diffuse, mview);
 
         memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
         mview_stack.pop();
@@ -905,20 +902,19 @@ void render_interface()
 
     // Set the projection to a transform that allows us to use pixel
     // coordinates.
-    glMatrixMode(GL_PROJECTION);
     GLfloat proj[16];
     matrix_ortho(proj, 0, screen_width, 0, screen_height, -800.0f, 800.0f);
-    glLoadMatrixf(proj);
 
+#if 0
     std::cout << "A" << std::endl;
     for (int i = 0; i < 16; ++i)
     {
       std::cout << proj[i] << ",";
       if (i % 4 == 3) { std::cout << std::endl; }
     }
+#endif
 
     // Set up the modelview
-    glMatrixMode(GL_MODELVIEW);
     // Reset the camera
     GLfloat mview[16];
     std::stack<Matrix> mview_stack;
@@ -927,7 +923,7 @@ void render_interface()
     // Disable the depth test, as its not useful when rendering text
     glDisable(GL_DEPTH_TEST);
 
-    tr.set_state();
+    tr.set_state(proj);
 
     // Print the number of frames per second. This is essential performance
     // information when developing 3D graphics.
@@ -936,20 +932,18 @@ void render_interface()
     // Use glTranslatef to go to the screen coordinates where we want the
     // text. The origin is the bottom left by default in OpenGL.
     matrix_translate(mview, 5.f, 5.f, 0);
-    glLoadMatrixf(mview);
     sprintf(buf, "FPS: %d", average_frames_per_second);
-    tr.gl_print(buf);
+    tr.gl_print(buf, mview);
 
     memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
     mview_stack.pop();
 
     matrix_translate(mview, 5.f, screen_height - 16 - 5, 0);
-    glLoadMatrixf(mview);
     int metres = floor(scale);
     int centimetres = floor(fmod(scale, 1) * 100.f);
     int milimetres = floor(fmod(scale, .01) * 1000.f);
     sprintf(buf, "%dm %dcm %dmm", metres, centimetres, milimetres);
-    tr.gl_print(buf);
+    tr.gl_print(buf, mview);
 
     tr.reset_state();
 }
