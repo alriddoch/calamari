@@ -34,5 +34,6 @@ void matrix_identity(GLfloat *m);
 void matrix_transpose(GLfloat *m);
 void matrix_invert(GLfloat *m);
 void matrix_perspective(GLfloat *m, GLfloat fovy, GLfloat aspect, GLfloat zNear, GLfloat zFar);
+void matrix_ortho(GLfloat *m, GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat near, GLfloat far);
 
 #endif // MATRIX_H

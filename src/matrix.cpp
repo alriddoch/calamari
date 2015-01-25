@@ -27,9 +27,6 @@
 #include <cstdlib>
 #include <cstring>
 
-/** The projection matrix */
-static GLfloat ProjectionMatrix[16];
-
 /** 
  * Multiplies two 4x4 matrices.
  * 
@@ -208,5 +205,21 @@ void matrix_perspective(GLfloat *m, GLfloat fovy, GLfloat aspect, GLfloat zNear,
    tmp[14] = -2 * zNear * zFar / deltaZ;
    tmp[15] = 0;
 
+   memcpy(m, tmp, sizeof(tmp));
+}
+
+void matrix_ortho(GLfloat * m,
+                  GLfloat l, GLfloat r,
+                  GLfloat b, GLfloat t, 
+                  GLfloat n, GLfloat f)
+{
+   // FIXME I'm uncertain about some bits of it.
+   GLfloat tmp[16] =
+   {
+     2.f / (r - l),      0.f,                0.f,         0.f,
+     0.f,                2.f / (t - b),      0.f,         0.f,
+     0.f,                0.f,                1 / (f - n), -n / (f - n),
+     -(r + l) / (r - l), -(t + b) / (t - b), 0.f,         1.f,
+   };
    memcpy(m, tmp, sizeof(tmp));
 }
