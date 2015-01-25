@@ -216,10 +216,10 @@ void matrix_ortho(GLfloat * m,
    // FIXME I'm uncertain about some bits of it.
    GLfloat tmp[16] =
    {
-     2.f / (r - l),      0.f,                0.f,         0.f,
-     0.f,                2.f / (t - b),      0.f,         0.f,
-     0.f,                0.f,                1 / (f - n), -n / (f - n),
-     -(r + l) / (r - l), -(t + b) / (t - b), 0.f,         1.f,
+     2.f / (r - l),      0.f,                0.f,                0.f,
+     0.f,                2.f / (t - b),      0.f,                0.f,
+     0.f,                0.f,                -2 / (f - n),       0.f,
+     -(r + l) / (r - l), -(t + b) / (t - b), -(f + n) / (f - n), 1.f,
    };
    memcpy(m, tmp, sizeof(tmp));
 }
