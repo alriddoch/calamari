@@ -906,8 +906,16 @@ void render_interface()
     // Set the projection to a transform that allows us to use pixel
     // coordinates.
     glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0, screen_width, 0, screen_height, -800.0f, 800.0f);
+    GLfloat proj[16];
+    matrix_ortho(proj, 0, screen_width, 0, screen_height, -800.0f, 800.0f);
+    glLoadMatrixf(proj);
+
+    std::cout << "A" << std::endl;
+    for (int i = 0; i < 16; ++i)
+    {
+      std::cout << proj[i] << ",";
+      if (i % 4 == 3) { std::cout << std::endl; }
+    }
 
     // Set up the modelview
     glMatrixMode(GL_MODELVIEW);
