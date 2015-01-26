@@ -101,6 +101,7 @@ class BoxRenderer
   GLint _VertexPosHandle = -1;
   GLint _NormalHandle = -1;
   GLint _modelviewHandle = -1;
+  GLint _normalHandle;
   GLint _projectionHandle = -1;
   GLint _lightPos = -1;
   GLint _lightAmbient = -1;
@@ -570,6 +571,7 @@ int BoxRenderer::setup()
 attribute vec4 LVertexPos;
 attribute vec3 LNormal;
 uniform mat4 LMV;
+uniform mat3 LNM;
 uniform mat4 LPM;
 uniform vec3 LLightPos;
 uniform vec4 LLightAmbient;
@@ -581,7 +583,7 @@ void main() {
   float NdotL;
 
   /* first transform the normal into eye space and normalize the result */
-  normal = normalize(gl_NormalMatrix * LNormal);
+  normal = normalize(LNM * LNormal);
 
   /* now normalize the light's direction. Note that according to the
      OpenGL specification, the light is stored in eye space. Also since
@@ -625,6 +627,7 @@ void main() {
   _NormalHandle = glGetAttribLocation(_programID, "LNormal");
 
   _modelviewHandle = glGetUniformLocation(_programID, "LMV");
+  _normalHandle = glGetUniformLocation(_programID, "LNM");
   _projectionHandle = glGetUniformLocation(_programID, "LPM");
   _lightPos = glGetUniformLocation(_programID, "LLightPos");
   _lightAmbient = glGetUniformLocation(_programID, "LLightAmbient");
@@ -786,7 +789,14 @@ void setup()
 
 void BoxRenderer::draw_unit_cube(float * material, GLfloat * mview)
 {
+  GLfloat inverse[16];
+  memcpy(inverse, mview, 16 * sizeof(GLfloat));
+  matrix_invert(inverse);
+  matrix_transpose(inverse);
+  GLfloat norm[9];
+  matrix_trim(norm, inverse);
   glUniformMatrix4fv(_modelviewHandle, 1, GL_FALSE, mview);
+  glUniformMatrix3fv(_normalHandle, 1, GL_FALSE, norm);
   glUniform4fv(_material, 1, material);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
 }
