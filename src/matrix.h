@@ -26,7 +26,7 @@
 
 #include <GL/gl.h>
 
-void matrix_multiply(GLfloat *m, const GLfloat *n);
+void matrix_multiply(GLfloat *m, GLfloat const *n);
 void matrix_rotate(GLfloat *m, GLfloat angle, GLfloat x, GLfloat y, GLfloat z);
 void matrix_scale(GLfloat *m, GLfloat x, GLfloat y, GLfloat z);
 void matrix_translate(GLfloat *m, GLfloat x, GLfloat y, GLfloat z);
@@ -35,5 +35,6 @@ void matrix_transpose(GLfloat *m);
 void matrix_invert(GLfloat *m);
 void matrix_perspective(GLfloat *m, GLfloat fovy, GLfloat aspect, GLfloat zNear, GLfloat zFar);
 void matrix_ortho(GLfloat *m, GLfloat left, GLfloat right, GLfloat bottom, GLfloat top, GLfloat near, GLfloat far);
+void matrix_trim(GLfloat *m, GLfloat const * n);
 
 #endif // MATRIX_H

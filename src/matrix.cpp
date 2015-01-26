@@ -223,3 +223,12 @@ void matrix_ortho(GLfloat * m,
    };
    memcpy(m, tmp, sizeof(tmp));
 }
+
+void matrix_trim(GLfloat * m,
+                 GLfloat const * n)
+{
+  for (int i = 0; i < 3; ++i)
+  {
+    memcpy(m + (i * 3), n + (i * 4), 3 * sizeof(GLfloat));
+  }
+}
