@@ -100,7 +100,8 @@ class BoxRenderer
   GLuint _programID = 0;
   GLint _VertexPosHandle = -1;
   GLint _NormalHandle = -1;
-  GLint _modelviewHandle = -1;
+  GLint _viewHandle = -1;
+  GLint _modelHandle = -1;
   GLint _normalHandle;
   GLint _projectionHandle = -1;
   GLint _lightPos = -1;
@@ -113,7 +114,7 @@ class BoxRenderer
 
   int setup();
 
-  void set_state(GLfloat * proj);
+  void set_state(GLfloat * proj, GLfloat * view);
   void reset_state();
 
   void draw_unit_cube(float *, GLfloat * mview);
@@ -570,7 +571,8 @@ int BoxRenderer::setup()
 #version 130
 attribute vec4 LVertexPos;
 attribute vec3 LNormal;
-uniform mat4 LMV;
+uniform mat4 LVM;
+uniform mat4 LMM;
 uniform mat3 LNM;
 uniform mat4 LPM;
 uniform vec3 LLightPos;
@@ -601,7 +603,7 @@ void main() {
   diffuse = LMaterial * LLightDiffuse;
   ambient = LMaterial * LLightAmbient;
   gl_FrontColor =  NdotL * diffuse + ambient;
-  gl_Position = (LPM * LMV) * LVertexPos;
+  gl_Position = LPM * ((LVM * LMM) * LVertexPos);
 }
 )glsl"
   };
@@ -626,7 +628,8 @@ void main() {
   _VertexPosHandle = glGetAttribLocation(_programID, "LVertexPos");
   _NormalHandle = glGetAttribLocation(_programID, "LNormal");
 
-  _modelviewHandle = glGetUniformLocation(_programID, "LMV");
+  _viewHandle = glGetUniformLocation(_programID, "LVM");
+  _modelHandle = glGetUniformLocation(_programID, "LMM");
   _normalHandle = glGetUniformLocation(_programID, "LNM");
   _projectionHandle = glGetUniformLocation(_programID, "LPM");
   _lightPos = glGetUniformLocation(_programID, "LLightPos");
@@ -710,11 +713,12 @@ void main() {
   return 0;
 } 
 
-void BoxRenderer::set_state(GLfloat * proj)
+void BoxRenderer::set_state(GLfloat * proj, GLfloat * view)
 {
   glUseProgram(_programID);
 
   glUniformMatrix4fv(_projectionHandle, 1, GL_FALSE, proj);
+  glUniformMatrix4fv(_viewHandle, 1, GL_FALSE, view);
 
   glEnableVertexAttribArray(_VertexPosHandle);
   glEnableVertexAttribArray(_NormalHandle);
@@ -795,7 +799,7 @@ void BoxRenderer::draw_unit_cube(float * material, GLfloat * mview)
   matrix_transpose(inverse);
   GLfloat norm[9];
   matrix_trim(norm, inverse);
-  glUniformMatrix4fv(_modelviewHandle, 1, GL_FALSE, mview);
+  glUniformMatrix4fv(_modelHandle, 1, GL_FALSE, mview);
   glUniformMatrix3fv(_normalHandle, 1, GL_FALSE, norm);
   glUniform4fv(_material, 1, material);
   glDrawArrays(GL_TRIANGLE_STRIP, 0, 24);
@@ -834,70 +838,73 @@ void render_scene()
   matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
 
   // Set the camera position
-  GLfloat mview[16];
-  std::stack<Matrix> mview_stack;
-  matrix_identity(mview);
-  camera_pos(mview);
+  GLfloat view[16];
+  matrix_identity(view);
+  camera_pos(view);
 
-  mview_stack.push(mview);
+  br.set_state(proj, view);
+
+  GLfloat model[16];
+  std::stack<Matrix> model_stack;
+  matrix_identity(model);
+
+  model_stack.push(model);
 
   GLfloat matrix[16];
   quaternion_rotmatrix(&orientation, matrix);
 
-  matrix_multiply(mview, matrix);
+  matrix_multiply(model, matrix);
 
-  br.set_state(proj);
+  model_stack.push(model);
 
-  mview_stack.push(mview);
-
-  matrix_scale(mview, .2f/scale, .2f/scale, .2f/scale);
-  matrix_translate(mview, -0.5f, -0.5f, -0.5f);
+  matrix_scale(model, .2f/scale, .2f/scale, .2f/scale);
+  matrix_translate(model, -0.5f, -0.5f, -0.5f);
 
   // FIXME need to implement Normal matrix (inverse transpose modelview)
 
   static float white[] = {1.0f, 1.f, 1.f, 0};
-  br.draw_unit_cube(white, mview);
+  br.draw_unit_cube(white, model);
 
-  memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-  mview_stack.pop();
+  memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
+  model_stack.pop();
 
   Block * b;
   for (b = blocks; b != nullptr; b = b->next) {
     if (b->present != 1) {
       continue;
     }
-    mview_stack.push(mview);
+    model_stack.push(model);
 
     quaternion_rotmatrix(&b->orientation, matrix);
-    matrix_multiply(mview, matrix);
+    matrix_multiply(model, matrix);
 
-    matrix_scale(mview, 1/scale, 1/scale, 1/scale);
-    matrix_translate(mview, b->x, b->y, b->z);
-    matrix_scale(mview, b->scale, b->scale, b->scale);
+    matrix_scale(model, 1/scale, 1/scale, 1/scale);
+    matrix_translate(model, b->x, b->y, b->z);
+    matrix_scale(model, b->scale, b->scale, b->scale);
 
-    br.draw_unit_cube(b->diffuse, mview);
+    br.draw_unit_cube(b->diffuse, model);
 
-    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-    mview_stack.pop();
+    memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
+    model_stack.pop();
   }
 
-  memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-  mview_stack.pop();
+  memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
+  model_stack.pop();
 
-  grid_origin(mview);
+  grid_origin(model);
 
   for (b = blocks; b != nullptr; b = b->next) {
     if (b->present != 0) {
       continue;
     }
-    mview_stack.push(mview);
+    model_stack.push(model);
 
-    matrix_translate(mview, b->x, b->y, 0);
-    matrix_scale(mview, b->scale, b->scale, b->scale);
-    br.draw_unit_cube(b->diffuse, mview);
+    matrix_translate(model, b->x, b->y, 0);
+    matrix_scale(model, b->scale, b->scale, b->scale);
+    br.draw_unit_cube(b->diffuse, model);
 
-    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-    mview_stack.pop();
+    memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
+    model_stack.pop();
   }
 
   br.reset_state();
