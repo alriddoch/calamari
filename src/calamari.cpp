@@ -329,79 +329,79 @@ GLuint create_program(const GLchar ** vertexShaderSource,
 // code with very little to worry about.
 SDL_Window * init_graphics()
 {
-    // Initialise SDL
-    if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
-        // std::cerr << "Failed to initialise video" << std::endl << std::flush;
-        return nullptr;
-    }
+  // Initialise SDL
+  if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER) != 0) {
+    // std::cerr << "Failed to initialise video" << std::endl << std::flush;
+    return nullptr;
+  }
 
-    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
-    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
-    SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
-                        SDL_GL_CONTEXT_PROFILE_CORE);
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 5);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 5);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 5);
+  SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
+  SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+  SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                      SDL_GL_CONTEXT_PROFILE_CORE);
 
-    SDL_Window * screen;
+  SDL_Window * screen;
 
-    // Create the window
-    // screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL);
-    screen = SDL_CreateWindow("Calamari Dalasie",
-                              SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                              screen_width, screen_height,
-                              SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-    if (screen == nullptr) {
-        // std::cerr << "Failed to set video mode" << std::endl << std::flush;
-        SDL_Quit();
-        return nullptr;
-    }
+  // Create the window
+  // screen = SDL_SetVideoMode(screen_width, screen_height, 0, SDL_OPENGL);
+  screen = SDL_CreateWindow("Calamari Dalasie",
+                            SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                            screen_width, screen_height,
+                            SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+  if (screen == nullptr) {
+    // std::cerr << "Failed to set video mode" << std::endl << std::flush;
+    SDL_Quit();
+    return nullptr;
+  }
 
-    SDL_GLContext context;
+  SDL_GLContext context;
 
-    context = SDL_GL_CreateContext(screen);
+  context = SDL_GL_CreateContext(screen);
 
-    GLenum e = glewInit();
-    if (e != GLEW_OK)
-    {
-        fprintf(stderr, "GLEW fail! %s\n", glewGetErrorString(e));
-        SDL_Quit();
-        return nullptr;
-    }
+  GLenum e = glewInit();
+  if (e != GLEW_OK)
+  {
+    fprintf(stderr, "GLEW fail! %s\n", glewGetErrorString(e));
+    SDL_Quit();
+    return nullptr;
+  }
 
   SDL_GL_SetSwapInterval(0);
 
-    // Setup the viewport transform
-    glViewport(0, 0, screen_width, screen_height);
+  // Setup the viewport transform
+  glViewport(0, 0, screen_width, screen_height);
 
-    // Set the colour the screen will be when cleared - black
-    glClearColor(0.0, 0.0, 0.0, 0.0);
+  // Set the colour the screen will be when cleared - black
+  glClearColor(0.0, 0.0, 0.0, 0.0);
 
-    glEnable(GL_CULL_FACE);
+  glEnable(GL_CULL_FACE);
 
-    if (tr.setup() != 0)
-    {
-      return nullptr;
-    }
+  if (tr.setup() != 0)
+  {
+    return nullptr;
+  }
 
-    if (br.setup() != 0)
-    {
-      return nullptr;
-    }
+  if (br.setup() != 0)
+  {
+    return nullptr;
+  }
 
-    return screen;
+  return screen;
 }
 
 void clear()
 {
-    int i, j;
-    for(i = 0; i < grid_width; ++i) {
-        for(j = 0; j < grid_height; ++j) {
-            properties[i][j].block = false;
-        }
+  int i, j;
+  for(i = 0; i < grid_width; ++i) {
+    for(j = 0; j < grid_height; ++j) {
+      properties[i][j].block = false;
     }
+  }
 }
 
 int TextRenderer::setup()
@@ -726,63 +726,63 @@ void BoxRenderer::set_state(GLfloat * proj)
 
 void BoxRenderer::reset_state()
 {
-    glDisableVertexAttribArray(_NormalHandle);
-    glDisableVertexAttribArray(_VertexPosHandle);
-    glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
+  glDisableVertexAttribArray(_NormalHandle);
+  glDisableVertexAttribArray(_VertexPosHandle);
+  glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 }
 
 void level(float factor)
 {
-    Block ** p = &blocks;
-    for (; *p != 0; p = &((*p)->next));
+  Block ** p = &blocks;
+  for (; *p != 0; p = &((*p)->next));
 
-    int i, j;
-    for (i = -grid_width; i < grid_width; ++i) {
-        for (j = -grid_height; j < grid_height; ++j) {
-            Block * b = new Block;
-            b->x = (i / 2.f + uniform(-0.5f, 0.5f)) * factor;
-            b->y = (j / 2.f + uniform(-0.5f, 0.5f)) * factor;
-            b->z = 0;
-            b->diffuse[0] = uniform(0.f, 1.f);
-            b->diffuse[1] = uniform(0.f, 1.f);
-            b->diffuse[2] = uniform(0.f, 1.f);
-            b->diffuse[3] = 1.f;
-            b->scale = logarithmic(0.05, 0.5) * factor;
-            b->present = 0;
-            b->next = nullptr;
-            if ((b->x + b->scale) > -factor / 2 && b->x < factor / 2 &&
-                (b->y + b->scale) > -factor / 2 && b->y < factor / 2) {
-                delete b;
-                continue;
-            }
-            *p = b;
-            p = &b->next;
-        }
+  int i, j;
+  for (i = -grid_width; i < grid_width; ++i) {
+    for (j = -grid_height; j < grid_height; ++j) {
+      Block * b = new Block;
+      b->x = (i / 2.f + uniform(-0.5f, 0.5f)) * factor;
+      b->y = (j / 2.f + uniform(-0.5f, 0.5f)) * factor;
+      b->z = 0;
+      b->diffuse[0] = uniform(0.f, 1.f);
+      b->diffuse[1] = uniform(0.f, 1.f);
+      b->diffuse[2] = uniform(0.f, 1.f);
+      b->diffuse[3] = 1.f;
+      b->scale = logarithmic(0.05, 0.5) * factor;
+      b->present = 0;
+      b->next = nullptr;
+      if ((b->x + b->scale) > -factor / 2 && b->x < factor / 2 &&
+          (b->y + b->scale) > -factor / 2 && b->y < factor / 2) {
+          delete b;
+          continue;
+      }
+      *p = b;
+      p = &b->next;
     }
+  }
 }
 
 void trim()
 {
-    float min_size = scale / 100.f;
-    Block * b = blocks;
-    while (b->next != 0 && b->scale < min_size) {
-        Block * current = b;
-        printf("Deleting %f\n", b->scale);
-        b = b->next;
-        delete current;
-    }
-    blocks = b;
+  float min_size = scale / 100.f;
+  Block * b = blocks;
+  while (b->next != 0 && b->scale < min_size) {
+    Block * current = b;
+    printf("Deleting %f\n", b->scale);
+    b = b->next;
+    delete current;
+  }
+  blocks = b;
 }
 
 void setup()
 {
-    // Clear the block store
-    clear();
+  // Clear the block store
+  clear();
 
-    quaternion_init(&orientation);
+  quaternion_init(&orientation);
 
-    level(1);
-    level(10);
+  level(1);
+  level(10);
 }
 
 #define BUFFER_OFFSET(bytes) ((GLubyte*) nullptr + (bytes) * sizeof(GLuint))
@@ -805,102 +805,102 @@ float camera_rotation = 0.0f;
 
 void grid_origin(GLfloat * mview)
 {
-    matrix_translate(mview, 0, 0, -1);
-    matrix_scale(mview, 1.f/scale, 1.f/scale, 1.f/scale);
-    matrix_translate(mview, -pos_x, -pos_y, -pos_z);
+  matrix_translate(mview, 0, 0, -1);
+  matrix_scale(mview, 1.f/scale, 1.f/scale, 1.f/scale);
+  matrix_translate(mview, -pos_x, -pos_y, -pos_z);
 }
 
 void camera_pos(GLfloat * mview)
 {
-    // Move the camera 20 units from the objects
-    // and one unit above
-    matrix_translate(mview, 0.0f, -1.0f, -10.0f);
+  // Move the camera 20 units from the objects
+  // and one unit above
+  matrix_translate(mview, 0.0f, -1.0f, -10.0f);
 
-    // Set the angle so we just can't see the horizon
-    matrix_rotate(mview, -65, 1, 0, 0);
-    matrix_rotate(mview, angle, 0, 0, 1);
+  // Set the angle so we just can't see the horizon
+  matrix_rotate(mview, -65, 1, 0, 0);
+  matrix_rotate(mview, angle, 0, 0, 1);
 }
 
 void render_scene()
 {
-    // Clear the screen
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  // Clear the screen
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // Enable the depth test
-    glEnable(GL_DEPTH_TEST);
+  // Enable the depth test
+  glEnable(GL_DEPTH_TEST);
 
-    // Set the projection transform
-    GLfloat proj[16];
-    matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
+  // Set the projection transform
+  GLfloat proj[16];
+  matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
 
-    // Set the camera position
-    GLfloat mview[16];
-    std::stack<Matrix> mview_stack;
-    matrix_identity(mview);
-    camera_pos(mview);
+  // Set the camera position
+  GLfloat mview[16];
+  std::stack<Matrix> mview_stack;
+  matrix_identity(mview);
+  camera_pos(mview);
 
+  mview_stack.push(mview);
+
+  GLfloat matrix[16];
+  quaternion_rotmatrix(&orientation, matrix);
+
+  matrix_multiply(mview, matrix);
+
+  br.set_state(proj);
+
+  mview_stack.push(mview);
+
+  matrix_scale(mview, .2f/scale, .2f/scale, .2f/scale);
+  matrix_translate(mview, -0.5f, -0.5f, -0.5f);
+
+  // FIXME need to implement Normal matrix (inverse transpose modelview)
+
+  static float white[] = {1.0f, 1.f, 1.f, 0};
+  br.draw_unit_cube(white, mview);
+
+  memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+  mview_stack.pop();
+
+  Block * b;
+  for (b = blocks; b != nullptr; b = b->next) {
+    if (b->present != 1) {
+      continue;
+    }
     mview_stack.push(mview);
 
-    GLfloat matrix[16];
-    quaternion_rotmatrix(&orientation, matrix);
-
+    quaternion_rotmatrix(&b->orientation, matrix);
     matrix_multiply(mview, matrix);
 
-    br.set_state(proj);
+    matrix_scale(mview, 1/scale, 1/scale, 1/scale);
+    matrix_translate(mview, b->x, b->y, b->z);
+    matrix_scale(mview, b->scale, b->scale, b->scale);
 
+    br.draw_unit_cube(b->diffuse, mview);
+
+    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+    mview_stack.pop();
+  }
+
+  memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+  mview_stack.pop();
+
+  grid_origin(mview);
+
+  for (b = blocks; b != nullptr; b = b->next) {
+    if (b->present != 0) {
+      continue;
+    }
     mview_stack.push(mview);
 
-    matrix_scale(mview, .2f/scale, .2f/scale, .2f/scale);
-    matrix_translate(mview, -0.5f, -0.5f, -0.5f);
-
-    // FIXME need to implement Normal matrix (inverse transpose modelview)
-
-    static float white[] = {1.0f, 1.f, 1.f, 0};
-    br.draw_unit_cube(white, mview);
+    matrix_translate(mview, b->x, b->y, 0);
+    matrix_scale(mview, b->scale, b->scale, b->scale);
+    br.draw_unit_cube(b->diffuse, mview);
 
     memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
     mview_stack.pop();
+  }
 
-    Block * b;
-    for (b = blocks; b != nullptr; b = b->next) {
-        if (b->present != 1) {
-            continue;
-        }
-        mview_stack.push(mview);
-
-        quaternion_rotmatrix(&b->orientation, matrix);
-        matrix_multiply(mview, matrix);
-
-        matrix_scale(mview, 1/scale, 1/scale, 1/scale);
-        matrix_translate(mview, b->x, b->y, b->z);
-        matrix_scale(mview, b->scale, b->scale, b->scale);
-
-        br.draw_unit_cube(b->diffuse, mview);
-
-        memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-        mview_stack.pop();
-    }
-
-    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-    mview_stack.pop();
-
-    grid_origin(mview);
-
-    for (b = blocks; b != nullptr; b = b->next) {
-        if (b->present != 0) {
-            continue;
-        }
-        mview_stack.push(mview);
-
-        matrix_translate(mview, b->x, b->y, 0);
-        matrix_scale(mview, b->scale, b->scale, b->scale);
-        br.draw_unit_cube(b->diffuse, mview);
-
-        memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-        mview_stack.pop();
-    }
-
-    br.reset_state();
+  br.reset_state();
 }
 
 // Draw any text output and other screen oriented user interface
@@ -908,54 +908,54 @@ void render_scene()
 // of the 3d view, put it here.
 void render_interface()
 {
-    char buf[256];
+  char buf[256];
 
-    // Set the projection to a transform that allows us to use pixel
-    // coordinates.
-    GLfloat proj[16];
-    matrix_ortho(proj, 0, screen_width, 0, screen_height, -800.0f, 800.0f);
+  // Set the projection to a transform that allows us to use pixel
+  // coordinates.
+  GLfloat proj[16];
+  matrix_ortho(proj, 0, screen_width, 0, screen_height, -800.0f, 800.0f);
 
 #if 0
-    std::cout << "A" << std::endl;
-    for (int i = 0; i < 16; ++i)
-    {
-      std::cout << proj[i] << ",";
-      if (i % 4 == 3) { std::cout << std::endl; }
-    }
+  std::cout << "A" << std::endl;
+  for (int i = 0; i < 16; ++i)
+  {
+    std::cout << proj[i] << ",";
+    if (i % 4 == 3) { std::cout << std::endl; }
+  }
 #endif
 
-    // Set up the modelview
-    // Reset the camera
-    GLfloat mview[16];
-    std::stack<Matrix> mview_stack;
-    matrix_identity(mview);
+  // Set up the modelview
+  // Reset the camera
+  GLfloat mview[16];
+  std::stack<Matrix> mview_stack;
+  matrix_identity(mview);
 
-    // Disable the depth test, as its not useful when rendering text
-    glDisable(GL_DEPTH_TEST);
+  // Disable the depth test, as its not useful when rendering text
+  glDisable(GL_DEPTH_TEST);
 
-    tr.set_state(proj);
+  tr.set_state(proj);
 
-    // Print the number of frames per second. This is essential performance
-    // information when developing 3D graphics.
+  // Print the number of frames per second. This is essential performance
+  // information when developing 3D graphics.
 
-    mview_stack.push(mview);
-    // Use glTranslatef to go to the screen coordinates where we want the
-    // text. The origin is the bottom left by default in OpenGL.
-    matrix_translate(mview, 5.f, 5.f, 0);
-    sprintf(buf, "FPS: %d", average_frames_per_second);
-    tr.gl_print(buf, mview);
+  mview_stack.push(mview);
+  // Use glTranslatef to go to the screen coordinates where we want the
+  // text. The origin is the bottom left by default in OpenGL.
+  matrix_translate(mview, 5.f, 5.f, 0);
+  sprintf(buf, "FPS: %d", average_frames_per_second);
+  tr.gl_print(buf, mview);
 
-    memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
-    mview_stack.pop();
+  memcpy(mview, mview_stack.top(), 16 * sizeof(GLfloat));
+  mview_stack.pop();
 
-    matrix_translate(mview, 5.f, screen_height - 16 - 5, 0);
-    int metres = floor(scale);
-    int centimetres = floor(fmod(scale, 1) * 100.f);
-    int milimetres = floor(fmod(scale, .01) * 1000.f);
-    sprintf(buf, "%dm %dcm %dmm", metres, centimetres, milimetres);
-    tr.gl_print(buf, mview);
+  matrix_translate(mview, 5.f, screen_height - 16 - 5, 0);
+  int metres = floor(scale);
+  int centimetres = floor(fmod(scale, 1) * 100.f);
+  int milimetres = floor(fmod(scale, .01) * 1000.f);
+  sprintf(buf, "%dm %dcm %dmm", metres, centimetres, milimetres);
+  tr.gl_print(buf, mview);
 
-    tr.reset_state();
+  tr.reset_state();
 }
 
 // Handle a mouse click. Call this function with the screen coordinates where
@@ -1089,436 +1089,437 @@ void step()
 
 void update(float delta)
 {
-    static bool flipped = false;
-    bool vel_changed = false;
-    bool braking = false;
-    float ang_rad = (angle / 180) * M_PI;
-    // Direction camera is facing
-    float forwards[] = { std::sin(ang_rad),   std::cos(ang_rad) };
-    float sideways[] = { std::cos(ang_rad), - std::sin(ang_rad) };
-    // Speed in the camera direction
-    float speed = vector2_dot(velocity, forwards);
-    float drift = vector2_dot(velocity, sideways);
-    static float support = 0;
+  static bool flipped = false;
+  bool vel_changed = false;
+  bool braking = false;
+  float ang_rad = (angle / 180) * M_PI;
+  // Direction camera is facing
+  float forwards[] = { std::sin(ang_rad),   std::cos(ang_rad) };
+  float sideways[] = { std::cos(ang_rad), - std::sin(ang_rad) };
+  // Speed in the camera direction
+  float speed = vector2_dot(velocity, forwards);
+  float drift = vector2_dot(velocity, sideways);
+  static float support = 0;
 
-    // printf("Velocity (%f,%f), Direction (%f,%f), Speed %f, Forward %f\n",
-           // velocity[0], velocity[1], forwards[0], forwards[1], speed,
-           // vector2_dot(velocity, forwards));
+  // printf("Velocity (%f,%f), Direction (%f,%f), Speed %f, Forward %f\n",
+         // velocity[0], velocity[1], forwards[0], forwards[1], speed,
+         // vector2_dot(velocity, forwards));
 
-    // Velociy should be a vector, so speed in facing direction can
-    // be determined by the dot product of velocity in the camera direction
-    // and this value used to determine what constraints should be placed on
-    // changes in speed, such as whether accelerating or braking, and maximums.
-    // Once vel is a vector, similar techniques can be used to handle sideways
-    // velocity, then finall deflection can be handled.
+  // Velociy should be a vector, so speed in facing direction can
+  // be determined by the dot product of velocity in the camera direction
+  // and this value used to determine what constraints should be placed on
+  // changes in speed, such as whether accelerating or braking, and maximums.
+  // Once vel is a vector, similar techniques can be used to handle sideways
+  // velocity, then finall deflection can be handled.
 
-    if (key_lf) {
-        if (key_rf) {
-            if (!(key_lb || key_rb)) {
-                // accelerate forwards
-                if (speed > 0) {
-                    speed += delta * max_accel;
-                } else {
-                    speed += delta * max_decel;
-                    braking = true;
-                }
-                vel_changed = true;
-            }
+  if (key_lf) {
+    if (key_rf) {
+      if (!(key_lb || key_rb)) {
+        // accelerate forwards
+        if (speed > 0) {
+          speed += delta * max_accel;
         } else {
-            if (key_lb) {
-                // printf("Roll left\n");
-                drift = -1;
-            } else {
-                if (key_rb) {
-                    // rotate right
-                    angle += delta * 50;
-                } else {
-                    // coast right
-                    angle += delta * 20;
-                    if (speed > 0) {
-                        speed += delta * max_accel / 2;
-                    } else {
-                        speed += delta * max_decel / 2;
-                    }
-                    vel_changed = true;
-                }
-            }
+          speed += delta * max_decel;
+          braking = true;
         }
+        vel_changed = true;
+      }
     } else {
-        if (key_rf) {
-            if (key_rb) {
-                // printf("Roll right\n");
-                drift = 1;
-            } else {
-                if (key_lb) {
-                    // rotate left
-                    angle -= delta * 50;
-                } else {
-                    // coast left
-                    angle -= delta * 20;
-                    if (speed > 0) {
-                        speed += delta * max_accel / 2;
-                    } else {
-                        speed += delta * max_decel / 2;
-                    }
-                    vel_changed = true;
-                }
-            }
+      if (key_lb) {
+        // printf("Roll left\n");
+        drift = -1;
+      } else {
+        if (key_rb) {
+          // rotate right
+          angle += delta * 50;
         } else {
-            if (key_lb) {
-                if (key_rb) {
-                    // reverse
-                    if (speed < 0) {
-                        speed -= delta * max_accel;
-                    } else {
-                        speed -= delta * max_decel;
-                        braking = true;
-                    }
-                    vel_changed = true;
-                } else {
-                    // reverse coast left
-                    angle -= delta * 20;
-                    if (speed < 0) {
-                        speed -= delta * max_accel / 2;
-                    } else {
-                        speed -= delta * max_decel / 2;
-                    }
-                    vel_changed = true;
-                }
-            } else if (key_rb) {
-                if (!key_lb) {
-                    // reverse coast right
-                    angle += delta * 20;
-                    if (speed < 0) {
-                        speed -= delta * max_accel / 2;
-                    } else {
-                        speed -= delta * max_decel / 2;
-                    }
-                    vel_changed = true;
-                }
-            }
+          // coast right
+          angle += delta * 20;
+          if (speed > 0) {
+            speed += delta * max_accel / 2;
+          } else {
+            speed += delta * max_decel / 2;
+          }
+          vel_changed = true;
         }
+      }
     }
-    if (key_flip) {
-        if (!flipped) {
-            angle += 180;
-            speed = -speed;
-            vel_changed = true;
-            flipped = true;
-        }
-    } else {
-        flipped = false;
-    }
-
-    if (vel_changed) {
-        // If the controls have had an effect on velocity, clamp it to
-        // the valid range
-        speed = std::fmax(speed, -max_velocity);
-        speed = std::fmin(speed, max_velocity);
-    } else {
-        // Otherwise coast gently to a stop
-        if (speed < 0.f) {
-            speed += delta;
-            speed = std::fmin(speed, 0.f);
+  } else {
+    if (key_rf) {
+      if (key_rb) {
+        // printf("Roll right\n");
+        drift = 1;
+      } else {
+        if (key_lb) {
+          // rotate left
+          angle -= delta * 50;
         } else {
-            speed -= delta;
-            speed = std::fmax(speed, 0.f);
+          // coast left
+          angle -= delta * 20;
+          if (speed > 0) {
+            speed += delta * max_accel / 2;
+          } else {
+            speed += delta * max_decel / 2;
+          }
+          vel_changed = true;
         }
-    }
-    if (drift < 0.f) {
-        drift += delta;
-        drift = std::fmin(drift, 0.f);
+      }
     } else {
-        drift -= delta;
-        drift = std::fmax(drift, 0.f);
-    }
-
-    float new_ang_rad = (angle / 180) * M_PI;
-
-    velocity[0] = std::sin(new_ang_rad) * speed + std::cos(ang_rad) * drift;
-    velocity[1] = std::cos(new_ang_rad) * speed - std::sin(ang_rad) * drift;
-
-    // float axis[] = { -1, 0, 0 };
-
-    pos_x += velocity[0] * delta * scale;
-    pos_y += velocity[1] * delta * scale;
-    pos_z += velocity[2] * delta * scale;
-
-    // For a unit sphere, distance rolled is equal to angle rolled in
-    // radians
-    if (!braking) {
-        float mag = std::hypot(velocity[0], velocity[1]);
-        if (mag > 0.f) {
-            float axis[3];
-
-            axis[0] =   velocity[1] / mag;
-            axis[1] = - velocity[0] / mag;
-            axis[2] = 0;
-            // printf("(%f,%f) %f\n", axis[0], axis[1], mag);
-            orientation = quaternion_rotate(&orientation, axis, -mag * delta);
-        }
-    }
-
-    // scale *= (1 + (delta * 0.01f));
-    bool climbing = false;
-    support = 0;
-
-    Block * b;
-    for (b = blocks; b != nullptr; b = b->next) {
-        bool collision = false;
-        if (b->present != 0) {
-            continue;
-        }
-        float bx = b->x + b->scale / 2.f;
-        float by = b->y + b->scale / 2.f;
-        if (pos_x < (b->x + b->scale + scale) &&
-            pos_x > (b->x - scale) &&
-            pos_y < (b->y + b->scale + scale) &&
-            pos_y > (b->y - scale)) {
-            support = std::fmax(support, b->scale);
-            if (pos_z < b->scale) {
-                if (pos_y < (b->y + b->scale) &&
-                    pos_y > (b->y)) {
-                    collision = true;
-                }
-                if (pos_x < (b->x + b->scale) &&
-                    pos_x > (b->x)) {
-                    collision = true;
-                }
-            }
-        }
-        if (std::sqrt(square(pos_x - (b->x + b->scale / 2)) +
-                      square(pos_y - (b->y + b->scale / 2)) +
-                      square(pos_z + scale - (b->scale / 2))) < (scale + b->scale / 2)) {
-            collision = true;
-        }
-        if (!collision) {
-            continue;
-        }
-        if (b->scale > scale) {
-            // printf("TOO BIG!\n");
-            // FIXME collide
-            if ((pos_z + scale / 8) >= b->scale) {
-                // on top
-            } else if (std::fabs(pos_x - bx) < std::fabs(pos_y - by)) {
-                // bouncing y
-                if (pos_y > by) {
-                    if (velocity[1] < 0) {
-                        // printf("Bounce +x\n");
-                        velocity[1] = -velocity[1];
-                        if (velocity[1] < 0.2) {
-                            climbing = true;
-                        }
-                    }
-                } else {
-                    if (velocity[1] > 0) {
-                        // printf("Bounce -x\n");
-                        velocity[1] = -velocity[1];
-                        if (velocity[1] > -0.2) {
-                            climbing = true;
-                        }
-                    }
-                }
-            } else {
-                // bouncing x
-                if (pos_x > bx) {
-                    if (velocity[0] < 0) {
-                        // printf("Bounce +y\n");
-                        velocity[0] = -velocity[0];
-                        if (velocity[0] < 0.2) {
-                            climbing = true;
-                        }
-                    }
-                } else {
-                    if (velocity[0] > 0) {
-                        // printf("Bounce -y\n");
-                        velocity[0] = -velocity[0];
-                        if (velocity[0] > -0.2) {
-                            climbing = true;
-                        }
-                    }
-                }
-            }
-            continue;
-        }
-        b->orientation = orientation;
-        quaternion_invert(&b->orientation);
-        b->x = b->x-pos_x;
-        b->y = b->y-pos_y;
-        b->z = -(pos_z + scale);
-        b->present = 1;
-        // scale === ball_radius
-        printf("B %f\n", scale);
-        scale = std::pow(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
-        printf("A %f\n", scale);
-    }
-    if (climbing) {
-        if (pos_z < support) {
-            velocity[2] = 1;
-        }
-    } else {
-        if (pos_z > support) {
-            // If we are above solid surface, fall towards it
-            velocity[2] -= 9.8 * delta;
-        } else if (velocity[2] < 0) {
-            // If we are not above, but still falling, bounce
-            velocity[2] = -0.7 * velocity[2];
+      if (key_lb) {
+        if (key_rb) {
+          // reverse
+          if (speed < 0) {
+            speed -= delta * max_accel;
+          } else {
+            speed -= delta * max_decel;
+            braking = true;
+          }
+          vel_changed = true;
         } else {
-            // Otherwise we are below and rising, in which case we must
-            // behave under gravity, but velocity must not go negative
-            velocity[2] -= 9.8 * delta;
-            if (velocity[2] < 0.f) {
-                velocity[2] = 0;
-            }
+          // reverse coast left
+          angle -= delta * 20;
+          if (speed < 0) {
+            speed -= delta * max_accel / 2;
+          } else {
+            speed -= delta * max_decel / 2;
+          }
+          vel_changed = true;
         }
+      } else if (key_rb) {
+        if (!key_lb) {
+          // reverse coast right
+          angle += delta * 20;
+          if (speed < 0) {
+            speed -= delta * max_accel / 2;
+          } else {
+            speed -= delta * max_decel / 2;
+          }
+          vel_changed = true;
+        }
+      }
     }
+  }
+  if (key_flip) {
+    if (!flipped) {
+      angle += 180;
+      speed = -speed;
+      vel_changed = true;
+      flipped = true;
+    }
+  } else {
+    flipped = false;
+  }
 
-    if (scale > next_level) {
-        level(next_level * 100);
-        trim();
-        next_level *= 10;
+  if (vel_changed) {
+    // If the controls have had an effect on velocity, clamp it to
+    // the valid range
+    speed = std::fmax(speed, -max_velocity);
+    speed = std::fmin(speed, max_velocity);
+  } else {
+    // Otherwise coast gently to a stop
+    if (speed < 0.f) {
+      speed += delta;
+      speed = std::fmin(speed, 0.f);
+    } else {
+      speed -= delta;
+      speed = std::fmax(speed, 0.f);
     }
+  }
+  if (drift < 0.f) {
+    drift += delta;
+    drift = std::fmin(drift, 0.f);
+  } else {
+    drift -= delta;
+    drift = std::fmax(drift, 0.f);
+  }
+
+  float new_ang_rad = (angle / 180) * M_PI;
+
+  velocity[0] = std::sin(new_ang_rad) * speed + std::cos(ang_rad) * drift;
+  velocity[1] = std::cos(new_ang_rad) * speed - std::sin(ang_rad) * drift;
+
+  // float axis[] = { -1, 0, 0 };
+
+  pos_x += velocity[0] * delta * scale;
+  pos_y += velocity[1] * delta * scale;
+  pos_z += velocity[2] * delta * scale;
+
+  // For a unit sphere, distance rolled is equal to angle rolled in
+  // radians
+  if (!braking) {
+    float mag = std::hypot(velocity[0], velocity[1]);
+    if (mag > 0.f) {
+      float axis[3];
+
+      axis[0] =   velocity[1] / mag;
+      axis[1] = - velocity[0] / mag;
+      axis[2] = 0;
+      // printf("(%f,%f) %f\n", axis[0], axis[1], mag);
+      orientation = quaternion_rotate(&orientation, axis, -mag * delta);
+    }
+  }
+
+  // scale *= (1 + (delta * 0.01f));
+  bool climbing = false;
+  support = 0;
+
+  Block * b;
+  for (b = blocks; b != nullptr; b = b->next) {
+    bool collision = false;
+    if (b->present != 0) {
+      continue;
+    }
+    float bx = b->x + b->scale / 2.f;
+    float by = b->y + b->scale / 2.f;
+    if (pos_x < (b->x + b->scale + scale) &&
+        pos_x > (b->x - scale) &&
+        pos_y < (b->y + b->scale + scale) &&
+        pos_y > (b->y - scale)) {
+        support = std::fmax(support, b->scale);
+      if (pos_z < b->scale) {
+        if (pos_y < (b->y + b->scale) &&
+            pos_y > (b->y)) {
+          collision = true;
+        }
+        if (pos_x < (b->x + b->scale) &&
+            pos_x > (b->x)) {
+          collision = true;
+        }
+      }
+    }
+    if (std::sqrt(square(pos_x - (b->x + b->scale / 2)) +
+                  square(pos_y - (b->y + b->scale / 2)) +
+                  square(pos_z + scale - (b->scale / 2))) <
+        (scale + b->scale / 2)) {
+      collision = true;
+    }
+    if (!collision) {
+      continue;
+    }
+    if (b->scale > scale) {
+      // printf("TOO BIG!\n");
+      // FIXME collide
+      if ((pos_z + scale / 8) >= b->scale) {
+        // on top
+      } else if (std::fabs(pos_x - bx) < std::fabs(pos_y - by)) {
+        // bouncing y
+        if (pos_y > by) {
+          if (velocity[1] < 0) {
+            // printf("Bounce +x\n");
+            velocity[1] = -velocity[1];
+            if (velocity[1] < 0.2) {
+              climbing = true;
+            }
+          }
+        } else {
+          if (velocity[1] > 0) {
+            // printf("Bounce -x\n");
+            velocity[1] = -velocity[1];
+            if (velocity[1] > -0.2) {
+              climbing = true;
+            }
+          }
+        }
+      } else {
+        // bouncing x
+        if (pos_x > bx) {
+          if (velocity[0] < 0) {
+            // printf("Bounce +y\n");
+            velocity[0] = -velocity[0];
+            if (velocity[0] < 0.2) {
+              climbing = true;
+            }
+          }
+        } else {
+          if (velocity[0] > 0) {
+            // printf("Bounce -y\n");
+            velocity[0] = -velocity[0];
+            if (velocity[0] > -0.2) {
+              climbing = true;
+            }
+          }
+        }
+      }
+      continue;
+    }
+    b->orientation = orientation;
+    quaternion_invert(&b->orientation);
+    b->x = b->x-pos_x;
+    b->y = b->y-pos_y;
+    b->z = -(pos_z + scale);
+    b->present = 1;
+    // scale === ball_radius
+    printf("B %f\n", scale);
+    scale = std::pow(cube(scale) + cube(b->scale) / (M_PI * 4.f / 3.f), 1.f/3.f);
+    printf("A %f\n", scale);
+  }
+  if (climbing) {
+    if (pos_z < support) {
+      velocity[2] = 1;
+    }
+  } else {
+    if (pos_z > support) {
+      // If we are above solid surface, fall towards it
+      velocity[2] -= 9.8 * delta;
+    } else if (velocity[2] < 0) {
+      // If we are not above, but still falling, bounce
+      velocity[2] = -0.7 * velocity[2];
+    } else {
+      // Otherwise we are below and rising, in which case we must
+      // behave under gravity, but velocity must not go negative
+      velocity[2] -= 9.8 * delta;
+      if (velocity[2] < 0.f) {
+        velocity[2] = 0;
+      }
+    }
+  }
+
+  if (scale > next_level) {
+    level(next_level * 100);
+    trim();
+    next_level *= 10;
+  }
 }
 
 // The main program loop function. This does not return until the program
 // has finished.
 void loop(SDL_Window * screen)
 {
-    SDL_Event event;
-    int elapsed_time = SDL_GetTicks();
-    int last_step = elapsed_time;
-    int frame_count = 0;
+  SDL_Event event;
+  int elapsed_time = SDL_GetTicks();
+  int last_step = elapsed_time;
+  int frame_count = 0;
 
-    // This is the main program loop. It will run until something sets
-    // the flag to indicate we are done.
-    while (!program_finished) {
-        // Check for events
-        while (SDL_PollEvent(&event)) {
-            switch (event.type) {
-                case SDL_QUIT:
-                    // The user closed the window
-                    program_finished = true;
-                    break;
-                case SDL_KEYDOWN:
-                    // We have a keypress
-                    if ( event.key.keysym.sym == SDLK_ESCAPE ) {
-                        // quit
-                        program_finished = true;
-                    }
-                    if ( event.key.keysym.sym == SDLK_UP ) {
-                    }
-                    if ( event.key.keysym.sym == SDLK_DOWN ) {
-                    }
-                    if ( event.key.keysym.sym == SDLK_LEFT ) {
-                    }
-                    if ( event.key.keysym.sym == SDLK_RIGHT ) {
-                    }
-                    if ( event.key.keysym.sym == SDLK_d ) {
-                        key_lf = true;
-                    }
-                    if ( event.key.keysym.sym == SDLK_c ) {
-                        key_lb = true;
-                    }
-                    if ( event.key.keysym.sym == SDLK_k ) {
-                        key_rf = true;
-                    }
-                    if ( event.key.keysym.sym == SDLK_m ) {
-                        key_rb = true;
-                    }
-                    if ( event.key.keysym.sym == SDLK_SPACE ) {
-                        key_flip = true;
-                    }
-                    break;
-                case SDL_KEYUP:
-                    if ( event.key.keysym.sym == SDLK_d ) {
-                        key_lf = false;
-                    }
-                    if ( event.key.keysym.sym == SDLK_c ) {
-                        key_lb = false;
-                    }
-                    if ( event.key.keysym.sym == SDLK_k ) {
-                        key_rf = false;
-                    }
-                    if ( event.key.keysym.sym == SDLK_m ) {
-                        key_rb = false;
-                    }
-                    if ( event.key.keysym.sym == SDLK_SPACE ) {
-                        key_flip = false;
-                    }
-                    break;
-                case SDL_MOUSEBUTTONDOWN:
-                    if (event.button.button == SDL_BUTTON_LEFT) {
-                        mouse_click(event.button.x,
-                                    screen_height - event.button.y);
-                    }
-                    break;
-                default:
-                    break;
-            }
+  // This is the main program loop. It will run until something sets
+  // the flag to indicate we are done.
+  while (!program_finished) {
+    // Check for events
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+        case SDL_QUIT:
+          // The user closed the window
+          program_finished = true;
+          break;
+        case SDL_KEYDOWN:
+          // We have a keypress
+          if ( event.key.keysym.sym == SDLK_ESCAPE ) {
+            // quit
+            program_finished = true;
+          }
+          if ( event.key.keysym.sym == SDLK_UP ) {
+          }
+          if ( event.key.keysym.sym == SDLK_DOWN ) {
+          }
+          if ( event.key.keysym.sym == SDLK_LEFT ) {
+          }
+          if ( event.key.keysym.sym == SDLK_RIGHT ) {
+          }
+          if ( event.key.keysym.sym == SDLK_d ) {
+            key_lf = true;
+          }
+          if ( event.key.keysym.sym == SDLK_c ) {
+            key_lb = true;
+          }
+          if ( event.key.keysym.sym == SDLK_k ) {
+            key_rf = true;
+          }
+          if ( event.key.keysym.sym == SDLK_m ) {
+            key_rb = true;
+          }
+          if ( event.key.keysym.sym == SDLK_SPACE ) {
+            key_flip = true;
+          }
+          break;
+        case SDL_KEYUP:
+          if ( event.key.keysym.sym == SDLK_d ) {
+            key_lf = false;
+          }
+          if ( event.key.keysym.sym == SDLK_c ) {
+            key_lb = false;
+          }
+          if ( event.key.keysym.sym == SDLK_k ) {
+            key_rf = false;
+          }
+          if ( event.key.keysym.sym == SDLK_m ) {
+            key_rb = false;
+          }
+          if ( event.key.keysym.sym == SDLK_SPACE ) {
+            key_flip = false;
+          }
+          break;
+        case SDL_MOUSEBUTTONDOWN:
+          if (event.button.button == SDL_BUTTON_LEFT) {
+            mouse_click(event.button.x,
+                        screen_height - event.button.y);
+          }
+          break;
+        default:
+          break;
         }
-
-        ++frame_count;
-
-        // Get the time and check if a complete time step has passed.
-        // For step based games like Tetris, this is used to update the
-        // the game state
-        const int ticks = SDL_GetTicks();
-        if ((ticks - last_step) > step_time) {
-            last_step = ticks;
-            average_frames_per_second = frame_count;
-            frame_count = 0;
-            step();
-        }
-
-        // Calculate the time in seconds since the last frame
-        // For a real time program this would be used to update the game state
-        int frame_ticks = (ticks - elapsed_time);
-        if (frame_ticks > 0) {
-            float delta = frame_ticks / 1000.0f;
-            update(delta);
-            elapsed_time = ticks;
-
-            // Update the rotation on the camera
-            camera_rotation += delta;
-            if (camera_rotation > (2 * M_PI)) {
-                camera_rotation -= (2 * M_PI);
-            }
-        }
-
-        // Render the screen
-        render_scene();
-        render_interface();
-
-        SDL_GL_SwapWindow(screen);
     }
+
+    ++frame_count;
+
+    // Get the time and check if a complete time step has passed.
+    // For step based games like Tetris, this is used to update the
+    // the game state
+    const int ticks = SDL_GetTicks();
+    if ((ticks - last_step) > step_time) {
+      last_step = ticks;
+      average_frames_per_second = frame_count;
+      frame_count = 0;
+      step();
+    }
+
+    // Calculate the time in seconds since the last frame
+    // For a real time program this would be used to update the game state
+    int frame_ticks = (ticks - elapsed_time);
+    if (frame_ticks > 0) {
+      float delta = frame_ticks / 1000.0f;
+      update(delta);
+      elapsed_time = ticks;
+
+      // Update the rotation on the camera
+      camera_rotation += delta;
+      if (camera_rotation > (2 * M_PI)) {
+        camera_rotation -= (2 * M_PI);
+      }
+    }
+
+    // Render the screen
+    render_scene();
+    render_interface();
+
+    SDL_GL_SwapWindow(screen);
+  }
 }
 
 int main()
 {
-    // Initialise the graphics
-    SDL_Window * screen = init_graphics();
-    if (screen == nullptr) {
-        return 1;
-    }
+  // Initialise the graphics
+  SDL_Window * screen = init_graphics();
+  if (screen == nullptr) {
+    return 1;
+  }
 
-    // Intialise the game state
-    setup();
+  // Intialise the game state
+  setup();
 
-    // Run the game
-    loop(screen);
-    return 0;
+  // Run the game
+  loop(screen);
+  return 0;
 }
 
 #ifdef WIN32
 
 int WinMain(
-    HINSTANCE hInstance,
-    HINSTANCE hPrevInstance,
-    LPSTR lpCmdLine,
-    int nCmdShow
+  HINSTANCE hInstance,
+  HINSTANCE hPrevInstance,
+  LPSTR lpCmdLine,
+  int nCmdShow
 )
 {
-    main();
+  main();
 }
 
 #endif
