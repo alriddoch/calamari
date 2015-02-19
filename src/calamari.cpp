@@ -48,6 +48,7 @@ typedef struct block {
     float diffuse[4];
     int present;
     Quaternion orientation;
+    GLfloat model[16];
     struct block * next;
 } Block;
 
@@ -764,6 +765,11 @@ void level(float factor)
           delete b;
           continue;
       }
+
+      matrix_identity(b->model);
+      matrix_translate(b->model, b->x, b->y, 0);
+      matrix_scale(b->model, b->scale, b->scale, b->scale);
+
       *p = b;
       p = &b->next;
     }
@@ -848,7 +854,6 @@ void render_scene()
 
   br.set_state(view);
 
-  GLfloat model[16];
 
   // Draw the world; the cubes on the ground
   // We don't need the model stack here, as every model is unique to the
@@ -857,13 +862,10 @@ void render_scene()
     if (b->present != 0) {
       continue;
     }
-    matrix_identity(model);
-
-    matrix_translate(model, b->x, b->y, 0);
-    matrix_scale(model, b->scale, b->scale, b->scale);
-    br.draw_unit_cube(b->diffuse, model);
+    br.draw_unit_cube(b->diffuse, b->model);
   }
 
+  GLfloat model[16];
   matrix_identity(model);
 
   std::stack<Matrix> model_stack;
