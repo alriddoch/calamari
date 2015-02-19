@@ -109,12 +109,15 @@ class BoxRenderer
   GLint _lightDiffuse = -1;
   GLint _material = -1;
 
+  // The projection transform
+  GLfloat _proj[16];
+
  public:
   BoxRenderer() = default;
 
   int setup();
 
-  void set_state(GLfloat * proj, GLfloat * view);
+  void set_state(GLfloat * view);
   void reset_state();
 
   void draw_unit_cube(float *, GLfloat * mview);
@@ -710,14 +713,16 @@ void main() {
 
   glBindBuffer(GL_ARRAY_BUFFER, GL_ZERO);
 
+  matrix_perspective(_proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
+
   return 0;
 } 
 
-void BoxRenderer::set_state(GLfloat * proj, GLfloat * view)
+void BoxRenderer::set_state(GLfloat * view)
 {
   glUseProgram(_programID);
 
-  glUniformMatrix4fv(_projectionHandle, 1, GL_FALSE, proj);
+  glUniformMatrix4fv(_projectionHandle, 1, GL_FALSE, _proj);
   glUniformMatrix4fv(_viewHandle, 1, GL_FALSE, view);
 
   glEnableVertexAttribArray(_VertexPosHandle);
@@ -836,16 +841,12 @@ void render_scene()
   // Enable the depth test
   glEnable(GL_DEPTH_TEST);
 
-  // Set the projection transform
-  GLfloat proj[16];
-  matrix_perspective(proj, 45, (float)screen_width/screen_height, 1.f, 100.f);
-
   // Set the camera position
   GLfloat view[16];
   matrix_identity(view);
   camera_pos(view);
 
-  br.set_state(proj, view);
+  br.set_state(view);
 
   GLfloat model[16];
 
