@@ -807,22 +807,25 @@ void BoxRenderer::draw_unit_cube(float * material, GLfloat * mview)
 
 float camera_rotation = 0.0f;
 
-void grid_origin(GLfloat * mview)
+void calamari_pos(GLfloat * model)
 {
-  matrix_translate(mview, 0, 0, -1);
-  matrix_scale(mview, 1.f/scale, 1.f/scale, 1.f/scale);
-  matrix_translate(mview, -pos_x, -pos_y, -pos_z);
+  matrix_translate(model, pos_x, pos_y, pos_z);
+  matrix_translate(model, 0, 0, scale);
 }
 
-void camera_pos(GLfloat * mview)
+void camera_pos(GLfloat * view)
 {
   // Move the camera 20 units from the objects
   // and one unit above
-  matrix_translate(mview, 0.0f, -1.0f, -10.0f);
+  matrix_translate(view, 0.0f, -1.0f, -10.0f);
 
   // Set the angle so we just can't see the horizon
-  matrix_rotate(mview, -65, 1, 0, 0);
-  matrix_rotate(mview, angle, 0, 0, 1);
+  matrix_rotate(view, -65, 1, 0, 0);
+  matrix_rotate(view, angle, 0, 0, 1);
+
+  matrix_translate(view, 0, 0, -1);
+  matrix_scale(view, 1.f/scale, 1.f/scale, 1.f/scale);
+  matrix_translate(view, -pos_x, -pos_y, -pos_z);
 }
 
 void render_scene()
@@ -845,10 +848,27 @@ void render_scene()
   br.set_state(proj, view);
 
   GLfloat model[16];
-  std::stack<Matrix> model_stack;
+
+  // Draw the world; the cubes on the ground
+  // We don't need the model stack here, as every model is unique to the
+  // cube, depends only on the block metadata, and nothing else.
+  for (Block * b = blocks; b != nullptr; b = b->next) {
+    if (b->present != 0) {
+      continue;
+    }
+    matrix_identity(model);
+
+    matrix_translate(model, b->x, b->y, 0);
+    matrix_scale(model, b->scale, b->scale, b->scale);
+    br.draw_unit_cube(b->diffuse, model);
+  }
+
   matrix_identity(model);
 
+  std::stack<Matrix> model_stack;
   model_stack.push(model);
+
+  calamari_pos(model);
 
   GLfloat matrix[16];
   quaternion_rotmatrix(&orientation, matrix);
@@ -857,7 +877,7 @@ void render_scene()
 
   model_stack.push(model);
 
-  matrix_scale(model, .2f/scale, .2f/scale, .2f/scale);
+  matrix_scale(model, scale, scale, scale);
   matrix_translate(model, -0.5f, -0.5f, -0.5f);
 
   // FIXME need to implement Normal matrix (inverse transpose modelview)
@@ -868,8 +888,7 @@ void render_scene()
   memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
   model_stack.pop();
 
-  Block * b;
-  for (b = blocks; b != nullptr; b = b->next) {
+  for (Block * b = blocks; b != nullptr; b = b->next) {
     if (b->present != 1) {
       continue;
     }
@@ -878,7 +897,6 @@ void render_scene()
     quaternion_rotmatrix(&b->orientation, matrix);
     matrix_multiply(model, matrix);
 
-    matrix_scale(model, 1/scale, 1/scale, 1/scale);
     matrix_translate(model, b->x, b->y, b->z);
     matrix_scale(model, b->scale, b->scale, b->scale);
 
@@ -891,21 +909,7 @@ void render_scene()
   memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
   model_stack.pop();
 
-  grid_origin(model);
-
-  for (b = blocks; b != nullptr; b = b->next) {
-    if (b->present != 0) {
-      continue;
-    }
-    model_stack.push(model);
-
-    matrix_translate(model, b->x, b->y, 0);
-    matrix_scale(model, b->scale, b->scale, b->scale);
-    br.draw_unit_cube(b->diffuse, model);
-
-    memcpy(model, model_stack.top(), 16 * sizeof(GLfloat));
-    model_stack.pop();
-  }
+  // grid_origin(model);
 
   br.reset_state();
 }
